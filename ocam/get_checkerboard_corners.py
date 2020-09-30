@@ -324,8 +324,8 @@ def _fix_nonsquare_board_ambiguity(x, y, n_sq_x, n_sq_y):
     dist2 = (x[1, n_cor_y] - x[1, n_cor_y + 1])**2 + (y[1, n_cor_y] - y[1, n_cor_y + 1])**2
     if dist1 > dist2:
         # We have it wrongly numbered, renumber
-        x_temp = x
-        y_temp = y
+        x_temp = copy(x)
+        y_temp = copy(y)
         lengthl = x.shape[1]
         iter_mult = n_cor_x
         iter_offset = 0
