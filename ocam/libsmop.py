@@ -751,10 +751,13 @@ def strrep(a, b, c):
 
 
 def sum(a, dim=None):
-    if dim is None:
-        return np.asanyarray(a).sum()
-    else:
-        return np.asanyarray(a).sum(dim - 1)
+    a = np.asanyarray(a)
+    if dim is not None:
+        return a.sum(dim - 1)
+    for dim, n in enumerate(a.shape):
+        if n > 1:
+            return a.sum(dim=dim)
+    return a.sum()
 
 
 def toupper(a):
@@ -907,6 +910,7 @@ def diff(x, n=None, dim=None):
 
 def trapz(x, y=None):
     return matlabarray(np.trapz(np.array(x), np.array(y)))
+
 
 def gradient(a):
     gx, gy = np.gradient(np.array(a))
