@@ -61,8 +61,8 @@ def bundleAdjustmentUrban(calib_data, robust):
     lauf = 0
     for i in calib_data.ima_proc.flat:
         RRfinOpt[:, :, i] = rodrigues(
-            concat([x0(offset + 1 + lauf), x0(offset + 2 + lauf), x0(offset + 3 + lauf)]))
-        RRfinOpt[:, 3, i] = concat([x0(offset + 4 + lauf), x0(offset + 5 + lauf), x0(offset + 6 + lauf)]).T
+            concat([x0[offset + 1 + lauf], x0[offset + 2 + lauf], x0[offset + 3 + lauf]]))
+        RRfinOpt[:, 3, i] = concat([x0[offset + 4 + lauf], x0[offset + 5 + lauf], x0[offset + 6 + lauf]]).T
         lauf += 6
 
     ssc = concat([x0(arange(6, offset))])
@@ -79,7 +79,7 @@ def bundleAdjustmentUrban(calib_data, robust):
     jacExtr[:, 7] = copy([])
     J = copy(jacExtr)
     rows, cols = size(J, nargout=2)
-    Qll = dot(sigma0q, eye(size(J, 1), size(J, 1)))
+    Qll = dot(sigma0q, eye(size[J, 1], size[J, 1]))
     P0 = inv(Qll)
     # a posteriori variance
     calib_data.statEO.sg0 = sqrt((dot(dot(v.T, P0), v)) / (rows - cols))
@@ -107,5 +107,5 @@ def bundleAdjustmentUrban(calib_data, robust):
     print('Root mean square[pixel]:  %f\n', rms, end='')
     calib_data.rms = copy(rms)
     calib_data.ocam_model.pol, calib_data.ocam_model.err, calib_data.ocam_model.N = findinvpoly(
-        calib_data.ocam_model.ss, sqrt((calib_data.ocam_model.width / 2)**2 + (calib_data.ocam_model.height / 2)**2),
+        calib_data.ocam_model.ss, sqrt((calib_data.width / 2)**2 + (calib_data.height / 2)**2),
         nargout=3)

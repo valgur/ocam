@@ -14,7 +14,7 @@ def omni3d2pixel(ss=None, xx=None, width=None, height=None):
     poly_coef = ss(arange(end(), 1, - 1))
     poly_coef_tmp = copy(poly_coef)
     for j in arange(1, length(m)).flat:
-        poly_coef_tmp[end() - 1] = poly_coef(end() - 1) - m(j)
+        poly_coef_tmp[end() - 1] = poly_coef(end() - 1) - m[j]
         rhoTmp = roots(poly_coef_tmp)
         res = rhoTmp(find(copy(np.imag(rhoTmp)) == logical_and(0, rhoTmp) > 0))
         if isempty(res):

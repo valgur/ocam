@@ -12,19 +12,19 @@ def mosaic(calib_data: CalibData):
     if len(calib_data.ind_read) == 0:
         return
 
-    n_col = floor(sqrt(calib_data.n_imgs * calib_data.ocam_model.width / calib_data.ocam_model.height))
+    n_col = floor(sqrt(calib_data.n_imgs * calib_data.width / calib_data.height))
     n_row = ceil(calib_data.n_imgs / n_col)
     ker2 = 1
-    for ii in arange(1, n_col).flat:
+    for ii in range(1, n_col + 1):
         ker2 = conv(ker2, concat([1 / 4, 1 / 2, 1 / 4]))
 
     II = calib_data.I[1](arange(1, end(), n_col), arange(1, end(), n_col))
     ny2, nx2 = size(II, nargout=2)
     kk_c = 1
     II_mosaic = copy([])
-    for jj in arange(1, n_row).flat:
+    for jj in range(1, n_row + 1):
         II_row = copy([])
-        for ii in arange(1, n_col).flat:
+        for ii in range(1, n_col + 1):
             if logical_and((kk_c <= calib_data.n_imgs), logical_not(isempty(calib_data.I[kk_c]))):
                 if calib_data.active_images(kk_c):
                     I = calib_data.I[kk_c]

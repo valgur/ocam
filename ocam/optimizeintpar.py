@@ -24,7 +24,7 @@ def optimizeintpar(calib_data: CalibData):
     ssout, resnorm, residual, exitflag, output = lsqnonlin(prova2, int_par, - inf, inf, options,
                                                            calib_data.ocam_model.ss, calib_data.RRfin,
                                                            calib_data.ima_proc, calib_data.Xp_abs, calib_data.Yp_abs, M,
-                                                           calib_data.ocam_model.width, calib_data.ocam_model.height,
+                                                           calib_data.width, calib_data.height,
                                                            nargout=5)
     print('Camera model optimized')
     c = ssout[1]
@@ -38,8 +38,8 @@ def optimizeintpar(calib_data: CalibData):
     calib_data.ocam_model.c = c
     calib_data.ocam_model.d = d
     calib_data.ocam_model.e = e
-    # calib_data.ocam_model.width=width;
-    # calib_data.ocam_model.height=height;
+    # calib_data.width=width;
+    # calib_data.height=height;
     reprojectpoints_adv(calib_data.ocam_model, calib_data.RRfin, calib_data.ima_proc, calib_data.Xp_abs,
                         calib_data.Yp_abs, M)
     print(calib_data.ocam_model.ss)

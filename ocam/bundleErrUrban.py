@@ -45,8 +45,8 @@ def bundleErrUrban(x, calib_data: CalibData, M, robust):
         Ypp = concat([[Ypp], [calib_data.Yp_abs[:, :, i]]])
         lauf += 6
 
-    xp1, yp1 = omni3d2pixel(multiply(calib_data.ocam_model.ss, ssc.T), Mc, calib_data.ocam_model.width,
-                            calib_data.ocam_model.height, nargout=2)
+    xp1, yp1 = omni3d2pixel(multiply(calib_data.ocam_model.ss, ssc.T), Mc, calib_data.width,
+                            calib_data.height, nargout=2)
     xp = dot(xp1, c) + dot(yp1, d) + dot(calib_data.ocam_model.xc, a)
     yp = dot(xp1, e) + yp1 + dot(calib_data.ocam_model.yc, b)
     errx = Xpp - xp.T

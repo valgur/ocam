@@ -62,7 +62,7 @@ def create_simulation_points(calib_data: CalibData):
     calib_data.n_sq_x
     calib_data.n_sq_y
     colors = 'brgkcm'
-    BASE = dot(dot(5, ddX), (concat([[0, 1, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1]])))
+    BASE = dot(5 * ddX, (concat([[0, 1, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 1]])))
     # Settings
     hhh = figure[2]
     hold('off')
@@ -78,11 +78,11 @@ def create_simulation_points(calib_data: CalibData):
     set(hhh, 'Name', 'Extrinsic parameters', 'NumberTitle', 'off')
     view[3]
     set(gca, 'Visible', 'On', 'Box', 'On', 'XGrid', 'Off', 'YGrid', 'Off', 'ZGrid', 'Off', 'Projection', 'perspective')
-    plot3(BASE[1, :], BASE[2, :], BASE[3, :], 'b-', 'linewidth', 2)
+    plot3(BASE[1, :], BASE[2, :], BASE[3, :], 'b-', linewidth=2)
     hold('on')
-    text(dot(6, ddX), 0, 0, 'X_c')
-    text(- ddX, dot(5, ddX), 0, 'Y_c')
-    text(0, 0, dot(6, ddX), 'Z_c')
+    text(6 * ddX, 0, 0, 'X_c')
+    text(- ddX, 5 * ddX, 0, 'Y_c')
+    text(0, 0, 6 * ddX, 'Z_c')
     text(- ddX, - ddX, ddX, 'O_c')
     XM, YM = meshgrid(concat([arange(- 25, 25, 1)]), concat([arange(- 25, 25, 1)]), nargout=2)
     hold('on')
@@ -106,8 +106,8 @@ def create_simulation_points(calib_data: CalibData):
         hold('on')
         hhh = mesh(YYx, YYy, YYz)
         axis('equal')
-        set(hhh, 'edgecolor', colors(rem(i - 1, 6) + 1), 'linewidth', 1)
-        text(uu[1], uu[2], uu[3], str(i), 'fontsize', 14, 'color', colors(rem(i - 1, 6) + 1))
+        set(hhh, edgecolor=colors(rem(i - 1, 6) + 1), linewidth=1)
+        text(uu[1], uu[2], uu[3], str[i], fontsize=14, color=colors(rem(i - 1, 6) + 1))
 
     hold('off')
     reprojectpoints_adv(calib_data.ocam_model, calib_data.RRfin, calib_data.ima_proc, calib_data.Xp_abs,

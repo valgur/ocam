@@ -50,16 +50,16 @@ def omni_find_extrs_parameters(ss=None, xc=None, yc=None, ima_proc=None, Xp_abs=
         M3 = concat([multiply(- Ypt, Xt), multiply(- Ypt, Yt), multiply(Xpt, Xt), multiply(Xpt, Yt), zeros(size(Xt)),
                      zeros(size(Xt)), - Ypt, Xpt, zeros(size(Xt))])
         MM = concat([[M1], [M2], [M3]])
-        U, S, V = svd(MM, nargout=3)
+        U, S, V = svd(MM)
         res = V[:, end()]
         Rt = reshape(res(arange(1, 6)), 2, 3).T
         scalefact = sqrt(abs(dot(norm(Rt[:, 1]), norm(Rt[:, 2]))))
         #    keyboard;
         Rt = concat([Rt, cross(Rt[:, 1], Rt[:, 2])])
-        U2, S2, V2 = svd(Rt, nargout=3)
+        U2, S2, V2 = svd(Rt)
         Rt = dot(U2, V2.T)
         Rt[:, 3] = res(arange(7, end())) / scalefact
-        Rt = dot(Rt, sign(dot(Rt(1, 3), RRfin(1, 3, i))))
+        Rt = dot(Rt, sign(dot(Rt[1, 3], RRfin(1, 3, i))))
         RRdef[:, :, i] = Rt
         # pause
 

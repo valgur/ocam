@@ -10,6 +10,7 @@ from numpy import sqrt, prod, exp, log, dot, multiply, inf
 from numpy.fft import fft2
 from numpy.linalg import inv
 from numpy.linalg import qr as _qr
+import scipy.signal
 
 try:
     from scipy.linalg import schur as _schur
@@ -59,7 +60,7 @@ def isvector(a):
 class matlabarray(np.ndarray):
     """
     >>> matlabarray()
-    matlabarray([], shape=(0, 0), dtype=float64)
+    matlabarray([], shape=[0, 0], dtype=float64)
     >>> matlabarray([arange(1,5), arange(1,5)])
     matlabarray([1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
     >>> matlabarray(["hello","world"])
@@ -118,7 +119,7 @@ class matlabarray(np.ndarray):
     def __getslice__(self, i, j):
         if i == 0 and j == sys.maxsize:
             return self.reshape(-1, 1, order="F")
-        return self.__getitem__(slice(i, j))
+        return self.__getitem__(slice[i, j])
 
     def __getitem__(self, index):
         return matlabarray(self.get(index))
@@ -134,7 +135,7 @@ class matlabarray(np.ndarray):
         if i == 0 and j == sys.maxsize:
             index = slice(None, None)
         else:
-            index = slice(i, j)
+            index = slice[i, j]
         self.__setitem__(index, value)
 
     def sizeof(self, ix):
@@ -387,9 +388,10 @@ def concat(args):
     >>> concat([1,2,3,4,5], [1,2,3,4,5]])
     [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
     """
-    t = [matlabarray(a) for a in args if len(a)]
-    # print(t)
-    return np.concatenate(t)
+    t = [matlabarray(a) for a in args]
+    t = [x for x in t if len(x)]
+    # print([x.shape for x in t])
+    return matlabarray(np.concatenate(t))
 
 
 def ceil(a):
@@ -580,13 +582,13 @@ except:
 
 def max(a, d=0, nargout=0):
     if d or nargout:
-        raise NotImplementedError
+        return builtins.max(a, d)
     return np.amax(a)
 
 
 def min(a, d=0, nargout=0):
     if d or nargout:
-        raise NotImplementedError
+        return builtins.min(a, d)
     return np.amin(a)
 
 
@@ -610,6 +612,7 @@ def ones(*args, **kwargs):
         return 1
     if len(args) == 1:
         args += args
+    args = [int(a) for a in args]
     return matlabarray(np.ones(args, order="F", **kwargs))
 
 
@@ -813,11 +816,98 @@ def isreal(a):
 
 
 eps = np.finfo(float).eps
-# print(np.finfo(np.float32).eps)
 
-if __name__ == "__main__":
-    import doctest
 
-    doctest.testmod()
+# https://stackoverflow.com/a/38194669/2997179
+def conv(u, v, mode='full'):
+    u = np.squeeze(np.array(u))
+    v = np.squeeze(np.array(v))
+    if mode == 'full':
+        result = np.convolve(u, v, 'full')
+    elif mode == 'same':
+        npad = len(v) - 1
+        u_padded = np.pad(u, (npad // 2, npad - npad // 2), mode='constant')
+        result = np.convolve(u_padded, v, 'valid')
+    else:
+        raise NotImplementedError
+    return matlabarray(result)
 
-# vim:et:sw=4:si:tw=60
+
+# https://stackoverflow.com/a/38355889/2997179
+def conv2(x, y, mode='full'):
+    if mode != 'same':
+        raise NotImplementedError
+    x = np.array(x)
+    y = np.array(y)
+    result = np.rot90(scipy.signal.convolve2d(np.rot90(x, 2), np.rot90(y, 2), mode=mode), 2)
+    return matlabarray(result)
+
+
+def fliplr(a, *args, **kwargs):
+    return matlabarray(np.fliplr(np.array(a), *args, **kwargs))
+
+
+def flipud(a, *args, **kwargs):
+    return matlabarray(np.flipud(np.array(a), *args, **kwargs))
+
+
+def svd(A, econ=None, nargout=3):
+    if econ is not None:
+        raise NotImplementedError
+    if nargout != 3:
+        raise NotImplementedError
+
+    U, sdiag, Vh = numpy.linalg.svd(A)
+    S = np.diagflat(sdiag)
+    V = Vh.T.conj()
+    return matlabarray(U), matlabarray(S), matlabarray(V)
+
+
+def sin(x):
+    return matlabarray(np.sin(x))
+
+
+def cos(x):
+    return matlabarray(np.cos(x))
+
+
+def tan(x):
+    return matlabarray(np.tan(x))
+
+
+def asin(x):
+    return matlabarray(np.arcsin(x))
+
+
+def acos(x):
+    return matlabarray(np.arccos(x))
+
+
+def atan(x):
+    return matlabarray(np.arctan(x))
+
+
+def atan2(x, y):
+    return matlabarray(np.arctan2(x, y))
+
+
+def sign(x):
+    return matlabarray(np.sign(x))
+
+
+def imag(x):
+    return matlabarray(np.imag(x))
+
+
+def diff(x, n=None, dim=None):
+    if n is not None or dim is not None:
+        raise NotImplementedError
+    return matlabarray(np.diff(np.array(x), axis=0))
+
+
+def trapz(x, y=None):
+    return matlabarray(np.trapz(np.array(x), np.array(y)))
+
+def gradient(a):
+    gx, gy = np.gradient(np.array(a))
+    return matlabarray(gy), matlabarray(gx)

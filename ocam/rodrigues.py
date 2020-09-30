@@ -42,24 +42,24 @@ def rodrigues(in_):
             dm3din = concat([[eye[3]], [in_.T / theta]])
             omega = in_ / theta
             dm2dm3 = concat([[eye[3] / theta, - in_ / theta**2], [zeros(1, 3), 1]])
-            alpha = np.cos(theta)
+            alpha = cos(theta)
             beta = sin(theta)
-            gamma = 1 - np.cos(theta)
+            gamma = 1 - cos(theta)
             omegav = concat([[concat([0, - omega[3], omega[2]])], [concat([omega[3], 0, - omega[1]])],
                              [concat([- omega[2], omega[1], 0])]])
             A = dot(omega, omega.T)
             dm1dm2 = zeros(21, 4)
             dm1dm2[1, 4] = - sin(theta)
-            dm1dm2[2, 4] = np.cos(theta)
+            dm1dm2[2, 4] = cos(theta)
             dm1dm2[3, 4] = sin(theta)
             dm1dm2[arange(4, 12), arange(1, 3)] = concat(
                 [[0, 0, 0, 0, 0, 1, 0, - 1, 0], [0, 0, - 1, 0, 0, 0, 1, 0, 0], [0, 1, 0, - 1, 0, 0, 0, 0, 0]]).T
             w1 = omega[1]
             w2 = omega[2]
             w3 = omega[3]
-            dm1dm2[arange(13, 21), 1] = concat([[dot(2, w1)], [w2], [w3], [w2], [0], [0], [w3], [0], [0]])
-            dm1dm2[arange(13, 21), 2] = concat([[0], [w1], [0], [w1], [dot(2, w2)], [w3], [0], [w3], [0]])
-            dm1dm2[arange(13, 21), 3] = concat([[0], [0], [w1], [0], [0], [w2], [w1], [w2], [dot(2, w3)]])
+            dm1dm2[arange(13, 21), 1] = concat([[2 * w1], [w2], [w3], [w2], [0], [0], [w3], [0], [0]])
+            dm1dm2[arange(13, 21), 2] = concat([[0], [w1], [0], [w1], [2 * w2], [w3], [0], [w3], [0]])
+            dm1dm2[arange(13, 21), 3] = concat([[0], [0], [w1], [0], [0], [w2], [w1], [w2], [2 * w3]])
             R = dot(eye[3], alpha) + dot(omegav, beta) + dot(A, gamma)
             dRdm1 = zeros(9, 21)
             dRdm1[concat([1, 5, 9]), 1] = ones(3, 1)
@@ -74,7 +74,7 @@ def rodrigues(in_):
         if (logical_and(logical_and(logical_and((m == n), (m == 3)), (norm(dot(in_.T, in_) - eye[3]) < bigeps)),
                         (abs(det(in_) - 1) < bigeps))):
             R = copy(in_)
-            U, S, V = svd(R, nargout=3)
+            U, S, V = svd(R)
             R = dot(U, V.T)
             tr = (trace(R) - 1) / 2
             dtrdR = concat([1, 0, 0, 0, 1, 0, 0, 0, 1]) / 2
@@ -83,10 +83,10 @@ def rodrigues(in_):
                 dthetadtr = - 1 / sqrt(1 - tr**2)
                 dthetadR = dot(dthetadtr, dtrdR)
                 vth = 1 / (dot(2, sin(theta)))
-                dvthdtheta = dot(- vth, np.cos(theta)) / sin(theta)
+                dvthdtheta = dot(- vth, cos(theta)) / sin(theta)
                 dvar1dtheta = concat([[dvthdtheta], [1]])
                 dvar1dR = dot(dvar1dtheta, dthetadR)
-                om1 = concat([R(3, 2) - R(2, 3), R(1, 3) - R(3, 1), R(2, 1) - R(1, 2)]).T
+                om1 = concat([R[3, 2] - R[2, 3], R[1, 3] - R[3, 1], R[2, 1] - R[1, 2]]).T
                 dom1dR = concat(
                     [[0, 0, 0, 0, 0, 1, 0, - 1, 0], [0, 0, - 1, 0, 0, 0, 1, 0, 0], [0, 1, 0, - 1, 0, 0, 0, 0, 0]])
                 dvardR = concat([[dom1dR], [dvar1dR]])

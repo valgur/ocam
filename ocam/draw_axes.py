@@ -1,28 +1,31 @@
-from .libsmop import *
+import matplotlib.pyplot as plt
+import numpy as np
+import numpy.linalg as la
 
 
-@function
-def draw_axes(Xp_abs=None, Yp_abs=None, n_sq_y=None):
-    xo_X = Xp_abs[arange(1, end(), n_sq_y + 1), :]
-    yo_X = Yp_abs[arange(1, end(), n_sq_y + 1), :]
-    xo_Y = Xp_abs[arange(1, n_sq_y + 1), :]
-    yo_Y = Yp_abs[arange(1, n_sq_y + 1), :]
-    plot(yo_X, xo_X, 'g-', 'linewidth', 2)
-    plot(yo_Y, xo_Y, 'g-', 'linewidth', 2)
+def draw_axes(ax: plt.Axes, x: np.ndarray, y: np.ndarray, n_sq_y: int, color='lime'):
+    x = np.array(x).flatten()  # vertical
+    y = np.array(y).flatten()  # horizontal
+    xo_X = x[::n_sq_y + 1]
+    yo_X = y[::n_sq_y + 1]
+    xo_Y = x[:n_sq_y + 1]
+    yo_Y = y[:n_sq_y + 1]
+    ax.plot(yo_X, xo_X, '-', c=color, linewidth=2)
+    ax.plot(yo_Y, xo_Y, '-', c=color, linewidth=2)
     delta = 40
 
-    uX = concat([[xo_X[2] - xo_X[1]], [yo_X[2] - yo_X[1]], [0]])
-    uY = concat([[xo_Y[2] - xo_Y[1]], [yo_Y[2] - yo_Y[1]], [0]])
-    origin = concat([[xo_X[1]], [yo_X[1]], [0]])
-    Xloc = cross(uX, cross(uX, uY))
-    Xloc /= abs(norm(Xloc)) + uX / abs(norm(uX))
-    Xloc = dot(Xloc / abs(norm(Xloc)), delta) + origin
-    Yloc = cross(cross(uX, uY), uY)
-    Yloc /= abs(norm(Yloc)) + uY / abs(norm(uY))
-    Yloc = dot(Yloc / abs(norm(Yloc)), delta) + origin
-    Oloc = (cross(cross(uX, uY), uY) / abs(norm(cross(cross(uX, uY), uY))) + cross(uX, cross(uX, uY)) / abs(
-        norm(cross(uX, cross(uX, uY)))))
-    Oloc = dot(Oloc / abs(norm(Oloc)), delta) + origin
-    text(Xloc[2], Xloc[1], 'X', 'color', 'g', 'Fontsize', 14, 'FontWeight', 'bold')
-    text(Yloc[2], Yloc[1], 'Y', 'color', 'g', 'Fontsize', 14, 'HorizontalAlignment', 'center', 'FontWeight', 'bold')
-    text(Oloc[2], Oloc[1], 'O', 'color', 'g', 'Fontsize', 14, 'FontWeight', 'bold')
+    uX = np.array([xo_X[1] - xo_X[0], yo_X[1] - yo_X[0], 0])
+    uY = np.array([xo_Y[1] - xo_Y[0], yo_Y[1] - yo_Y[0], 0])
+    origin = np.array([xo_X[0], yo_X[0], 0])
+    Xloc = np.cross(uX, np.cross(uX, uY))
+    Xloc /= la.norm(Xloc) + uX / la.norm(uX)
+    Xloc = Xloc / la.norm(Xloc) * delta + origin
+    Yloc = np.cross(np.cross(uX, uY), uY)
+    Yloc /= la.norm(Yloc) + uY / la.norm(uY)
+    Yloc = Yloc / la.norm(Yloc) * delta + origin
+    Oloc = (np.cross(np.cross(uX, uY), uY) / la.norm(np.cross(np.cross(uX, uY), uY)) +
+            np.cross(uX, np.cross(uX, uY)) / la.norm(np.cross(uX, np.cross(uX, uY))))
+    Oloc = Oloc / la.norm(Oloc) * delta + origin
+    ax.text(Xloc[1], Xloc[0], 'X', dict(color=color, fontsize=14, fontweight='bold'))
+    ax.text(Yloc[1], Yloc[0], 'Y', dict(color=color, fontsize=14, horizontalalignment='center', fontweight='bold'))
+    ax.text(Oloc[1], Oloc[0], 'O', dict(color=color, fontsize=14, fontweight='bold'))

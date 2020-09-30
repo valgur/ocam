@@ -29,7 +29,7 @@ def reprojectpoints_fun_adv_all(x=None, xc=None, yc=None, ss=None, RRfin=None, i
 
     print('\n Average reprojection error computed for each chessboard [pixels]:\n')
     for i in arange(1, length(err)).flat:
-        fprintf(' %3.2f %c %3.2f\n', err(i), 177, stderr(i))
+        fprintf(' %3.2f %c %3.2f\n', err[i], 177, stderr[i])
 
     print('\n Average error [pixels]\n\n %f\n', mean(err), end='')
     print('\n Sum of squared errors\n\n %f\n', MSE, end='')

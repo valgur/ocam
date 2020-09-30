@@ -38,8 +38,8 @@ def reprojectpoints(calib_data: CalibData):
         counterr += 1
         xx = dot(calib_data.RRfin[:, :, i],
                  concat([[calib_data.Xt.T], [calib_data.Yt.T], [ones(size(calib_data.Xt.T))]]))
-        Xp_reprojected, Yp_reprojected = omni3d2pixel(calib_data.ocam_model.ss, xx, calib_data.ocam_model.width,
-                                                      calib_data.ocam_model.height, nargout=2)
+        Xp_reprojected, Yp_reprojected = omni3d2pixel(calib_data.ocam_model.ss, xx, calib_data.width,
+                                                      calib_data.height, nargout=2)
         stt = sqrt((calib_data.Xp_abs[:, :, i] - calib_data.ocam_model.xc - Xp_reprojected.T)**2 + (
                 calib_data.Yp_abs[:, :, i] - calib_data.ocam_model.yc - Yp_reprojected.T)**2)
         err[counterr] = mean(stt)
@@ -49,7 +49,7 @@ def reprojectpoints(calib_data: CalibData):
 
     print('\n Average reprojection error computed for each chessboard [pixels]:\n')
     for i in arange(1, length(err)).flat:
-        fprintf(' %3.2f %c %3.2f\n', err(i), 177, stderr(i))
+        fprintf(' %3.2f %c %3.2f\n', err[i], 177, stderr[i])
 
     # err'
     print('\n Average error [pixels]\n\n %f\n', mean(err), end='')

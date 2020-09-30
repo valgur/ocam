@@ -16,7 +16,7 @@ def export_data(ocam_model: OCamModel):
     fid.write('%d ' % (length(ocam_model.ss)))
 
     for i in arange(1, length(ocam_model.ss)).flat:
-        fid.write('%e ' % (ocam_model.ss(i)))
+        fid.write('%e ' % (ocam_model.ss[i]))
 
     fprintf(fid, '\n\n')
     fprintf(fid,

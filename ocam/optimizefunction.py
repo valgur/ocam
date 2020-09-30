@@ -95,7 +95,7 @@ def optimizefunction(calib_data: CalibData):
                                                            dot(inf, ones(size(x0))), options, calib_data.ocam_model.ss,
                                                            int_par, calib_data.Xp_abs[:, :, i],
                                                            calib_data.Yp_abs[:, :, i], M,
-                                                           calib_data.ocam_model.width, calib_data.ocam_model.height,
+                                                           calib_data.width, calib_data.height,
                                                            nargout=7)
             RRfinOpt[:, :, i] = rodrigues(x0(arange(1, 3)))
             RRfinOpt[:, 3, i] = x0(arange(4, 6)).T
@@ -104,7 +104,7 @@ def optimizefunction(calib_data: CalibData):
             rows, cols = size(jacExtr, nargout=2)
             v = copy(vExtr)
             J = copy(jacExtr)
-            Qll = dot(sigma0q, eye(size(J, 1), size(J, 1)))
+            Qll = dot(sigma0q, eye(size[J, 1], size[J, 1]))
             P0 = inv(Qll)
             calib_data.statEO[i].sg0 = copy((dot(dot(v.T, P0), v)) / (rows - cols))
             calib_data.statEO[i].Exx = copy(dot(calib_data.statEO[i].sg0, pinv(dot(dot(J.T, P0), J))))
@@ -137,12 +137,12 @@ def optimizefunction(calib_data: CalibData):
                      ones(1, size(calib_data.ocam_model.ss, 1))])
         lb = concat([0, 0, 0, - 1, - 1, zeros(1, size(calib_data.ocam_model.ss, 1))])
         ub = concat([2, 2, 2, 1, 1, dot(2, ones(1, size(calib_data.ocam_model.ss, 1)))])
-        #     [ssout,~,vIO,~,~,~,jacsIO] =lsqnonlin(@prova3,f0,lb,ub,options,calib_data.ocam_model.xc,calib_data.ocam_model.yc,ss0,calib_data.RRfin,calib_data.ima_proc,calib_data.Xp_abs,calib_data.Yp_abs,M, calib_data.ocam_model.width, calib_data.ocam_model.height);
+        #     [ssout,~,vIO,~,~,~,jacsIO] =lsqnonlin(@prova3,f0,lb,ub,options,calib_data.ocam_model.xc,calib_data.ocam_model.yc,ss0,calib_data.RRfin,calib_data.ima_proc,calib_data.Xp_abs,calib_data.Yp_abs,M, calib_data.width, calib_data.height);
         ssout, __, vIO, __, __, __, jacsIO = lsqnonlin(prova3, f0, dot(- inf, ones(1, length(x0))),
                                                        dot(inf, ones(1, length(x0))), options, calib_data.ocam_model.xc,
                                                        calib_data.ocam_model.yc, ss0, calib_data.RRfin,
                                                        calib_data.ima_proc, calib_data.Xp_abs, calib_data.Yp_abs, M,
-                                                       calib_data.ocam_model.width, calib_data.ocam_model.height,
+                                                       calib_data.width, calib_data.height,
                                                        nargout=7)
         #  added code , steffen urban
         sigma0q = 1**2
@@ -150,7 +150,7 @@ def optimizefunction(calib_data: CalibData):
         jacsIO[:, 7] = copy([])
         v = copy(vIO)
         J = copy(jacsIO)
-        Qll = dot(sigma0q, eye(size(J, 1), size(J, 1)))
+        Qll = dot(sigma0q, eye(size[J, 1], size[J, 1]))
         P0 = inv(Qll)
         calib_data.statIO.sg0 = copy((dot(dot(v.T, P0), v)) / (rows - cols))
         calib_data.statIO.Exx = copy(dot(calib_data.statIO.sg0, inv(dot(dot(J.T, P0), J))))

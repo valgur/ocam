@@ -37,8 +37,8 @@ def prova_all(x=None, ss=None, ima_proc=None, Xp_abs=None, Yp_abs=None, M=None, 
     # costruisci RRfin
     count = 0
     for i in ima_proc.flat:
-        R = rodrigues(x(arange(dot(6, count) + 4, dot(6, count) + 6)))
-        T = x(arange(dot(6, count) + 7, dot(6, count) + 9))
+        R = rodrigues(x(arange(6 * count + 4, 6 * count + 6)))
+        T = x(arange(6 * count + 7, 6 * count + 9))
         RRfin[:, :, i] = R
         RRfin[:, 3, i] = T
         count += 1

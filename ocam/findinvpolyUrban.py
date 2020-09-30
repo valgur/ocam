@@ -58,7 +58,7 @@ def invFUN(ss=None, theta=None, radius=None):
     poly_coef = ss(arange(end(), 1, - 1))
     poly_coef_tmp = copy(poly_coef)
     for j in arange(1, length(m)).flat:
-        poly_coef_tmp[end() - 1] = poly_coef(end() - 1) - m(j)
+        poly_coef_tmp[end() - 1] = poly_coef(end() - 1) - m[j]
         rhoTmp = roots(poly_coef_tmp)
         res = rhoTmp(find(imag(rhoTmp) == logical_and(0, rhoTmp) > logical_and(0, rhoTmp) < radius))
         if logical_or(isempty(res), length(res)) > 1:

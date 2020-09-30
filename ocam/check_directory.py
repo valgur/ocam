@@ -15,7 +15,7 @@ def check_directory(calib_data: CalibData):
     loc_extension = copy([])
     length_name = size(calib_data.calib_name, 2)
     if Nl > 0:
-        for pp in arange(1, Nl).flat:
+        for pp in range(1, Nl + 1):
             filenamepp = l(pp).name
             if isempty(calib_data.calib_name):
                 iii = 1
@@ -34,7 +34,7 @@ def check_directory(calib_data: CalibData):
                 loc_extension = concat([loc_extension, loc_ext[1]])
         if Nima_valid == 0:
             format_image = upper(calib_data.format_image)
-            for pp in arange(1, Nl).flat:
+            for pp in range(1, Nl + 1):
                 filenamepp = l(pp).name
                 if isempty(calib_data.calib_name):
                     iii = 1
@@ -57,7 +57,7 @@ def check_directory(calib_data: CalibData):
                 # Get all the string numbers:
                 string_length = zeros(1, Nima_valid)
                 indices = zeros(1, Nima_valid)
-                for ppp in arange(1, Nima_valid).flat:
+                for ppp in range(1, Nima_valid + 1):
                     name = l(ind_valid(ppp)).name
                     string_num = name(arange(length_name + 1, loc_extension(ppp) - 2))
                     string_length[ppp] = size(string_num, 2)
@@ -76,7 +76,7 @@ def check_directory(calib_data: CalibData):
             # Get all the string numbers:
             string_length = zeros(1, Nima_valid)
             indices = zeros(1, Nima_valid)
-            for ppp in arange(1, Nima_valid).flat:
+            for ppp in range(1, Nima_valid + 1):
                 name = l(ind_valid(ppp)).name
                 string_num = name(arange(length_name + 1, loc_extension(ppp) - 2))
                 string_length[ppp] = size(string_num, 2)

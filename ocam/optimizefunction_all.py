@@ -41,7 +41,7 @@ def optimizefunction_all(calib_data: CalibData):
     tic
     allout, resnorm, residual, exitflag, output = lsqnonlin(prova_all, x0, [], [], options, ss0, calib_data.ima_proc,
                                                             calib_data.Xp_abs, calib_data.Yp_abs, M,
-                                                            calib_data.ocam_model.width, calib_data.ocam_model.height,
+                                                            calib_data.width, calib_data.height,
                                                             nargout=5)
     toc
     xc = allout(end() - length(calib_data.ocam_model.ss) - 1)
@@ -55,8 +55,8 @@ def optimizefunction_all(calib_data: CalibData):
     # costruisci RRfin
     count = 0
     for i in calib_data.ima_proc.flat:
-        Rod = rodrigues(allout(arange(dot(6, count) + 4, dot(6, count) + 6)))
-        Tod = allout(arange(dot(6, count) + 7, dot(6, count) + 9))
+        Rod = rodrigues(allout(arange(6 * count + 4, 6 * count + 6)))
+        Tod = allout(arange(6 * count + 7, 6 * count + 9))
         RRfinOpt[:, :, i] = Rod
         RRfinOpt[:, 3, i] = Tod
         count += 1

@@ -31,7 +31,7 @@ def analyse_error(calib_data: CalibData):
             '\nNo calibration data available. You must first calibrate your camera.\nClick on "Calibration" or "Find center"\n')
         return
 
-    figure[5]
+    figure(5)
     set(5, 'Name', 'Analyse error', 'NumberTitle', 'off')
     zoom('on')
     colors = 'brgkcm'
@@ -53,7 +53,7 @@ def analyse_error(calib_data: CalibData):
         count += 1
         xx = dot(calib_data.RRfin[:, :, i],
                  concat([[calib_data.Xt.T], [calib_data.Yt.T], [ones(size(calib_data.Xt.T))]]))
-        xp1, yp1 = omni3d2pixel(calib_data.ocam_model.ss, xx, calib_data.ocam_model.width, calib_data.ocam_model.height,
+        xp1, yp1 = omni3d2pixel(calib_data.ocam_model.ss, xx, calib_data.width, calib_data.height,
                                 nargout=2)
         xp = dot(xp1, calib_data.ocam_model.c) + dot(yp1, calib_data.ocam_model.d) + calib_data.ocam_model.xc
         yp = dot(xp1, calib_data.ocam_model.e) + yp1 + calib_data.ocam_model.yc
@@ -70,7 +70,7 @@ def analyse_error(calib_data: CalibData):
     grid('on')
     print('\n Average reprojection error computed for each chessboard [pixels]:\n')
     for i in arange(1, length(err)).flat:
-        fprintf(' %3.2f %c %3.2f\n', err(i), 177, stderr(i))
+        fprintf(' %3.2f %c %3.2f\n', err[i], 177, stderr[i])
 
     print('\n Average error [pixels]\n\n %f\n', np.mean(err), end='')
     print('\n Sum of squared errors\n\n %f\n', MSE, end='')

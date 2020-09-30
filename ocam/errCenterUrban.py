@@ -41,15 +41,15 @@ def errCenterUrban(x, calib_data: CalibData):
         # to penalize the minimization away from that point
         if calib_data.RRfin[:, :, i] == 0:
             error += sum(dot(ones(length(calib_data.Xp_abs), 1),
-                             sqrt((calib_data.ocam_model.width / 2)**2 + (calib_data.ocam_model.height / 2)**2)))
+                             sqrt((calib_data.width / 2)**2 + (calib_data.height / 2)**2)))
         else:
             Mc = dot(RRfin[:, :, i], M.T)
             Xpp = calib_data.Xp_abs[:, :, i]
             Ypp = calib_data.Yp_abs[:, :, i]
-            xp1, yp1 = omni3d2pixel(ss, Mc, calib_data.ocam_model.width, calib_data.ocam_model.height, nargout=2)
+            xp1, yp1 = omni3d2pixel(ss, Mc, calib_data.width, calib_data.height, nargout=2)
             if (logical_or(isinf(xp1), isinf(yp1))):
                 error += sum(dot(ones(length(calib_data.Xp_abs), 1),
-                                 sqrt((calib_data.ocam_model.width / 2)**2 + (calib_data.ocam_model.height / 2)**2)))
+                                 sqrt((calib_data.width / 2)**2 + (calib_data.height / 2)**2)))
             else:
                 xp = xp1 + xc
                 yp = yp1 + yc

@@ -39,10 +39,10 @@ def reproject_calib(calib_data: CalibData):
     #   no_image = 0;
     # end;
 
-    if logical_or(isempty(calib_data.ocam_model.width), isempty(calib_data.ocam_model.height)):
+    if logical_or(isempty(calib_data.width), isempty(calib_data.height)):
         print('WARNING: No image size (width,height) available. Setting width=640 and height=480')
-        calib_data.ocam_model.width = 640
-        calib_data.ocam_model.height = 480
+        calib_data.width = 640
+        calib_data.height = 480
 
     # Color code for each image:
 
@@ -78,7 +78,7 @@ def reproject_calib(calib_data: CalibData):
         if (size(calib_data.I, 1) >= kk) and logical_not(isempty(calib_data.I[kk])):
             I = calib_data.I[kk]
         else:
-            I = dot(255, ones(calib_data.ocam_model.height, calib_data.ocam_model.width))
+            I = dot(255, ones(calib_data.height, calib_data.width))
         xx = dot(calib_data.RRfin[:, :, kk],
                  concat([[calib_data.Xt.T], [calib_data.Yt.T], [ones(size(calib_data.Xt.T))]]))
         m = world2cam(xx, calib_data.ocam_model)
@@ -93,9 +93,9 @@ def reproject_calib(calib_data: CalibData):
         plot(calib_data.Yp_abs[:, :, kk], calib_data.Xp_abs[:, :, kk], 'r+')
         plot(yp, xp, concat([str(colors(rem(kk - 1, 6) + 1)), 'o']))
         plot(calib_data.ocam_model.yc, calib_data.ocam_model.xc, 'ro')
-        axis(concat([1, calib_data.ocam_model.width, 1, calib_data.ocam_model.height]))
+        axis(concat([1, calib_data.width, 1, calib_data.height]))
         drawnow
-        set(5 + kk, 'color', concat([1, 1, 1]))
+        set(5 + kk, color=concat([1, 1, 1]))
         set(5 + kk, 'Name', concat(['Image ', str(kk)]), 'NumberTitle', 'off')
         draw_axes(calib_data.Xp_abs[:, :, kk], calib_data.Yp_abs[:, :, kk],
                   calib_data.n_sq_y)

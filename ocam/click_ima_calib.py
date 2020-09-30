@@ -47,7 +47,7 @@ def click_ima_calib(kk, use_corner_find, calib_data: CalibData):
     figure[2]
     image(I)
     colormap(calib_data.map)
-    set(2, 'color', concat([1, 1, 1]))
+    set(2, color=concat([1, 1, 1]))
     title(concat([
         'Press ENTER and then Click on the extreme corners of the rectangular pattern (first corner = origin)... Image ',
         str(kk)]))
@@ -65,7 +65,7 @@ def click_ima_calib(kk, use_corner_find, calib_data: CalibData):
             xi = xxi[1]
             yi = xxi[2]
         figure[2]
-        plot(xi, yi, '+', 'color', concat([1.0, 0.314, 0.51]), 'linewidth', 2)
+        plot(xi, yi, '+', color=concat([1.0, 0.314, 0.51]), linewidth=2)
         x = concat([[x], [xi]])
         y = concat([[y], [yi]])
         drawnow()

@@ -62,8 +62,8 @@ def findcenterUrban(calib_data: CalibData):
     figure[3]
     set(3, 'Name', 'Calibration results', 'NumberTitle', 'off')
     subplot(2, 1, 1)
-    plot(arange(0, floor(calib_data.ocam_model.width / 2)),
-         polyval(concat([ss(arange(end(), 1, - 1))]), concat([arange(0, floor(calib_data.ocam_model.width / 2))])))
+    plot(arange(0, floor(calib_data.width / 2)),
+         polyval(concat([ss(arange(end(), 1, - 1))]), concat([arange(0, floor(calib_data.width / 2))])))
     grid('on')
     axis('equal')
     xlabel('Distance \'rho\' from the image center in pixels')
@@ -71,9 +71,9 @@ def findcenterUrban(calib_data: CalibData):
     title('Forward projection function')
 
     subplot(2, 1, 2)
-    plot(arange(0, floor(calib_data.ocam_model.width / 2)), dot(180 / np.pi, np.arctan2(
-        arange(0, floor(calib_data.ocam_model.width / 2)), - polyval(concat([ss(arange(end(), 1, - 1))]), concat(
-            [arange(0, floor(calib_data.ocam_model.width / 2))])))) - 90)
+    plot(arange(0, floor(calib_data.width / 2)), dot(180 / np.pi, np.arctan2(
+        arange(0, floor(calib_data.width / 2)), - polyval(concat([ss(arange(end(), 1, - 1))]), concat(
+            [arange(0, floor(calib_data.width / 2))])))) - 90)
     grid('on')
     xlabel('Distance \'rho\' from the image center in pixels')
     ylabel('Degrees')

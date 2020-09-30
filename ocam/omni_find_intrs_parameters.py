@@ -14,15 +14,15 @@ def omni_find_intrs_parameters(taylor_order=None, xc=None, yc=None, ima_proc=Non
     QQ = copy([])
     for i in ima_proc.flat:
         RRdef = RRfin[:, :, i]
-        R11 = RRdef(1, 1)
-        R21 = RRdef(2, 1)
-        R31 = RRdef(3, 1)
-        R12 = RRdef(1, 2)
-        R22 = RRdef(2, 2)
-        R32 = RRdef(3, 2)
-        T1 = RRdef(1, 3)
-        T2 = RRdef(2, 3)
-        T3 = RRdef(3, 3)
+        R11 = RRdef[1, 1]
+        R21 = RRdef[2, 1]
+        R31 = RRdef[3, 1]
+        R12 = RRdef[1, 2]
+        R22 = RRdef[2, 2]
+        R32 = RRdef[3, 2]
+        T1 = RRdef[1, 3]
+        T2 = RRdef[2, 3]
+        T3 = RRdef[3, 3]
         Xpt = Xp[:, :, i]
         Ypt = Yp[:, :, i]
         MA = multiply(R21, Xt) + multiply(R22, Yt) + T2

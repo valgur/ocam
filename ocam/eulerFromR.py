@@ -29,24 +29,24 @@ def eulerFromR(R=None, plusPI=None):
     psi2 = 0
     theta2 = 0
     phi2 = 0
-    if R(3, 1) != 1 and R(3, 1) != - 1:
-        theta1 = - np.arcsin(R(3, 1))
+    if R[3, 1] != 1 and R[3, 1] != - 1:
+        theta1 = - np.arcsin(R[3, 1])
         theta2 = np.pi - theta1
-        psi1 = np.arctan2(R(3, 2) / np.cos(theta1), R(3, 3) / np.cos(theta1))
-        psi2 = np.arctan2(R(3, 2) / np.cos(theta2), R(3, 3) / np.cos(theta2))
-        phi1 = np.arctan2(R(2, 1) / np.cos(theta1), R(1, 1) / np.cos(theta1))
-        phi2 = np.arctan2(R(2, 1) / np.cos(theta2), R(1, 1) / np.cos(theta2))
+        psi1 = np.arctan2(R[3, 2] / cos(theta1), R[3, 3] / cos(theta1))
+        psi2 = np.arctan2(R[3, 2] / cos(theta2), R[3, 3] / cos(theta2))
+        phi1 = np.arctan2(R[2, 1] / cos(theta1), R[1, 1] / cos(theta1))
+        phi2 = np.arctan2(R[2, 1] / cos(theta2), R[1, 1] / cos(theta2))
         psi = psi1
         theta = theta1
         phi = phi1
     else:
         phi = 0
-        if R(3, 1) == - 1:
+        if R[3, 1] == - 1:
             theta = np.pi / 2
-            psi = phi + np.arctan2(R(1, 2), R(1, 3))
+            psi = phi + np.arctan2(R[1, 2], R[1, 3])
         else:
             theta = - np.pi / 2
-            psi = - phi + np.arctan2(- R(1, 2), - R(1, 3))
+            psi = - phi + np.arctan2(- R[1, 2], - R[1, 3])
 
     if plusPI:
         psithetaphi = concat([psi2, theta2, phi2])

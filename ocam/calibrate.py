@@ -34,7 +34,7 @@ def calibrate(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None, yc=None, tayl
         Ypt = Yp[:, :, kk]
         Xpt = Xp[:, :, kk]
         A = concat([multiply(Xt, Ypt), multiply(Yt, Ypt), multiply(- Xt, Xpt), multiply(- Yt, Xpt), Ypt, - Xpt])
-        U, S, V = svd(A, nargout=3)
+        U, S, V = svd(A)
         R11 = V(1, end())
         R12 = V(2, end())
         R21 = V(3, end())
@@ -50,8 +50,8 @@ def calibrate(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None, yc=None, tayl
         R32 = copy([])
         sg = concat([1, - 1])
         for i in arange(1, length(R32_2)).flat:
-            for j in arange(1, 2).flat:
-                sqrtR32_2 = dot(sg(j), sqrt(R32_2(i)))
+            for j in range(1, 2 + 1):
+                sqrtR32_2 = dot(sg[j], sqrt(R32_2[i]))
                 R32 = concat([[R32], [sqrtR32_2]])
                 if R32_2 == 0:
                     R31 = concat([[R31], [sqrt(CC - BB)]])
@@ -62,30 +62,30 @@ def calibrate(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None, yc=None, tayl
         RR = zeros(3, 3, dot(length(R32), 2))
         count = 0
         for i1 in arange(1, length(R32)).flat:
-            for i2 in arange(1, 2).flat:
+            for i2 in range(1, 2 + 1):
                 count += 1
                 Lb = numpy.linalg.solve(sqrt(R11**2 + R21**2 + R31(i1)**2), 1)
-                RR[:, :, count] = dot(dot(sg(i2), Lb),
+                RR[:, :, count] = dot(dot(sg[i2], Lb),
                                       concat([[R11, R12, T1], [R21, R22, T2], [R31(i1), R32(i1), 0]]))
         RR1 = copy([])
         minRR = np.inf
         minRR_ind = - 1
         for min_count in arange(1, size(RR, 3)).flat:
-            if (norm(concat([[RR(1, 3, min_count)], [RR(2, 3, min_count)]]) - concat([[Xpt[1]], [Ypt[1]]])) < minRR):
-                minRR = norm(concat([[RR(1, 3, min_count)], [RR(2, 3, min_count)]]) - concat([[Xpt[1]], [Ypt[1]]]))
+            if (norm(concat([[RR[1, 3, min_count]], [RR[2, 3, min_count]]]) - concat([[Xpt[1]], [Ypt[1]]])) < minRR):
+                minRR = norm(concat([[RR[1, 3, min_count]], [RR[2, 3, min_count]]]) - concat([[Xpt[1]], [Ypt[1]]]))
                 minRR_ind = min_count
         if minRR_ind != - 1:
             count2 = 0
             for count in arange(1, size(RR, 3)).flat:
-                if (sign(RR(1, 3, count)) == logical_and(sign(RR(1, 3, minRR_ind)), sign(RR(2, 3, count))) == sign(
-                        RR(2, 3, minRR_ind))):
+                if (sign(RR[1, 3, count]) == logical_and(sign(RR[1, 3, minRR_ind]), sign(RR[2, 3, count])) == sign(
+                        RR[2, 3, minRR_ind])):
                     count2 += 1
                     RR1[:, :, count2] = RR[:, :, count]
         if isempty(RR1):
             RRfin = 0
             ss = 0
             return RRfin, ss
-        #    figure[1]; imagesc(aa(:,:,:,counter)); set(h,'name',filename);
+        #    figure[1]; imagesc(aa[:,:,:,counter]); set(h,'name',filename);
         nm = plot_RR(RR1, Xt, Yt, Xpt, Ypt, 0)
         RRdef = RR1[:, :, nm]
         RRfin[:, :, kk] = RRdef
@@ -112,14 +112,14 @@ def omni_find_parameters_fun(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None
         for i in ima_proc.flat:
             count += 1
             RRdef = RRfin[:, :, i]
-            R11 = RRdef(1, 1)
-            R21 = RRdef(2, 1)
-            R31 = RRdef(3, 1)
-            R12 = RRdef(1, 2)
-            R22 = RRdef(2, 2)
-            R32 = RRdef(3, 2)
-            T1 = RRdef(1, 3)
-            T2 = RRdef(2, 3)
+            R11 = RRdef[1, 1]
+            R21 = RRdef[2, 1]
+            R31 = RRdef[3, 1]
+            R12 = RRdef[1, 2]
+            R22 = RRdef[2, 2]
+            R32 = RRdef[3, 2]
+            T1 = RRdef[1, 3]
+            T2 = RRdef[2, 3]
             Xpt = Xp[:, :, i]
             Ypt = Yp[:, :, i]
             MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
@@ -147,15 +147,15 @@ def omni_find_parameters_fun(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None
         else:
             diff_order = 2
             mono_rho = copy([])
-            for j in arange(1, taylor_order).flat:
+            for j in range(1, taylor_order + 1):
                 mono_rho[:, j] = concat([arange(1, max(squeeze(max(Xp_abs))))])**j
             for diff_k in arange(1, min(diff_order, taylor_order)).flat:
                 mono1 = copy([])
-                for j in arange(1, diff_k).flat:
+                for j in range(1, diff_k + 1):
                     mono1 = concat([mono1, zeros(size(mono_rho, 1), 1)])
                 mono1 = concat([mono1, dot(factorial(diff_k), ones(size(mono_rho, 1), 1))])
                 for j in arange(diff_k + 1, taylor_order).flat:
-                    mono1 = concat([mono1, dot(factorial(j) / factorial(j - diff_k), mono_rho[:, j - diff_k])])
+                    mono1 = concat([mono1, dot(factorial[j] / factorial(j - diff_k), mono_rho[:, j - diff_k])])
                 mono = concat([[mono], [mono1[:, 1], mono1[:, arange(3, end())]]])
             if isempty(mono):
                 mono = copy([])
@@ -187,14 +187,14 @@ def omni_find_parameters_fun(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None
             for i in ima_proc.flat:
                 count += 1
                 RRdef = RRfin[:, :, i]
-                R11 = RRdef(1, 1)
-                R21 = RRdef(2, 1)
-                R31 = RRdef(3, 1)
-                R12 = RRdef(1, 2)
-                R22 = RRdef(2, 2)
-                R32 = RRdef(3, 2)
-                T1 = RRdef(1, 3)
-                T2 = RRdef(2, 3)
+                R11 = RRdef[1, 1]
+                R21 = RRdef[2, 1]
+                R31 = RRdef[3, 1]
+                R12 = RRdef[1, 2]
+                R22 = RRdef[2, 2]
+                R32 = RRdef[3, 2]
+                T1 = RRdef[1, 3]
+                T2 = RRdef[2, 3]
                 Xpt = Xp[:, :, i]
                 Ypt = Yp[:, :, i]
                 MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
@@ -227,8 +227,8 @@ def omni_find_parameters_fun(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None
             ub = concat([[s(arange(1, taylor_order)) + abs(dot(range_, s(arange(1, taylor_order))))], [np.inf],
                          [dot(np.inf, ones(size(s(arange(taylor_order + 1, end())))))]])
             eq_bounds = find(lb == ub)
-            lb[eq_bounds] = lb(eq_bounds) - eps(lb(eq_bounds))
-            ub[eq_bounds] = ub(eq_bounds) + eps(ub(eq_bounds))
+            lb[eq_bounds] = lb[eq_bounds] - eps(lb[eq_bounds])
+            ub[eq_bounds] = ub[eq_bounds] + eps(ub[eq_bounds])
         count = 0
         for j in ima_proc.flat:
             count += 1
@@ -246,14 +246,14 @@ def plot_RR(RR=None, Xt=None, Yt=None, Xpt=None, Ypt=None, figure_number=None):
 
     for i in arange(1, size(RR, 3)).flat:
         RRdef = RR[:, :, i]
-        R11 = RRdef(1, 1)
-        R21 = RRdef(2, 1)
-        R31 = RRdef(3, 1)
-        R12 = RRdef(1, 2)
-        R22 = RRdef(2, 2)
-        R32 = RRdef(3, 2)
-        T1 = RRdef(1, 3)
-        T2 = RRdef(2, 3)
+        R11 = RRdef[1, 1]
+        R21 = RRdef[2, 1]
+        R31 = RRdef[3, 1]
+        R12 = RRdef[1, 2]
+        R22 = RRdef[2, 2]
+        R32 = RRdef[3, 2]
+        T1 = RRdef[1, 3]
+        T2 = RRdef[2, 3]
         MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
         MB = multiply(Ypt, (multiply(R31, Xt) + multiply(R32, Yt)))
         MC = multiply(R11, Xt) + multiply(R12, Yt) + T1

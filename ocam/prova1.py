@@ -32,7 +32,7 @@ def prova1(ss=None, RRfin=None, Xp=None, Yp=None, M=None):
     Mc = copy([])
     Xpp = copy([])
     Ypp = copy([])
-    for i in arange(1, Nframes).flat:
+    for i in range(1, Nframes + 1):
         Mc = concat([Mc, dot(RRfin[:, :, i], M.T)])
         Xpp = concat([[Xpp], [Xp[:, :, i]]])
         Ypp = concat([[Ypp], [Yp[:, :, i]]])

@@ -71,7 +71,7 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
 
     # Tell the automatic corner extractor, which image file to process
     fid = open('./autoCornerFinder/pictures.txt', 'w')
-    fid.write('../%s' % (calib_data.imgs[kk]))
+    fid.write('../%s' % (calib_data.imgs[kk - 1]))
     fid.close()
     # iter_r += 1;    #!!!iter_r is defined in "click_calib.m"!!!
 
@@ -173,23 +173,23 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
             # Define the starting corner as the first found corner
             # which has a neighbor corner which was also found
             if j != cols and flagStart == true:
-                if cornersX(i, j) >= 0 and cornersX(i, j + 1) >= 0:
+                if cornersX[i, j] >= 0 and cornersX(i, j + 1) >= 0:
                     startingCorner = concat([i, j])
                     flagStart = false
-            if cornersX(i, j) >= 0:
-                cornersX[i, j] = cornersX(i, j) + 1
+            if cornersX[i, j] >= 0:
+                cornersX[i, j] = cornersX[i, j] + 1
                 numOfFoundCorners += 1
                 # found corners. ->Needed further down
-                if cornersX(i, j) > max_x:
-                    max_x = cornersX(i, j)
-                if cornersX(i, j) < min_x:
-                    min_x = cornersX(i, j)
-            if cornersY(i, j) >= 0:
-                cornersY[i, j] = cornersY(i, j) + 1
-                if cornersY(i, j) > max_y:
-                    max_y = cornersY(i, j)
-                if cornersY(i, j) < min_y:
-                    min_y = cornersY(i, j)
+                if cornersX[i, j] > max_x:
+                    max_x = cornersX[i, j]
+                if cornersX[i, j] < min_x:
+                    min_x = cornersX[i, j]
+            if cornersY[i, j] >= 0:
+                cornersY[i, j] = cornersY[i, j] + 1
+                if cornersY[i, j] > max_y:
+                    max_y = cornersY[i, j]
+                if cornersY[i, j] < min_y:
+                    min_y = cornersY[i, j]
 
     # PREPARATIONS FOR PROPER PLOT ZOOM-IN
     ###########################################################################
@@ -213,21 +213,21 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
         figure[2]
         image(I)
         colormap(calib_data.map)
-        set(2, 'color', concat([1, 1, 1]))
+        set(2, color=concat([1, 1, 1]))
         title(cellarray([concat(['Image ', str(kk)])]))
         h = get(gca, 'title')
-        set(h, 'FontWeight', 'bold')
+        set(h, fontweight='bold')
         axis(concat([min_x, max_x, min_y, max_y]))
         figure[2]
         hold('on')
         i = startingCorner[1]
         j = startingCorner[2]
         # Plot the starting corner and its neighbor
-        plot(cornersX(i, j), cornersY(i, j), '+', 'color', 'red', 'linewidth', 2)
-        plot(cornersX(i, j + 1), cornersY(i, j + 1), '+', 'color', 'red', 'linewidth', 2)
-        text(cornersX(i, j) + 3, cornersY(i, j) + 3, str[0])
+        plot(cornersX[i, j], cornersY[i, j], '+', color='red', linewidth=2)
+        plot(cornersX(i, j + 1), cornersY(i, j + 1), '+', color='red', linewidth=2)
+        text(cornersX[i, j] + 3, cornersY[i, j] + 3, str[0])
         text(cornersX(i, j + 1) + 3, cornersY(i, j + 1) + 3, str[1])
-        set(findobj('type', 'text'), 'color', 'red')
+        set(findobj('type', 'text'), color='red')
         hold('off')
         numCornersDirZeroOne = input(concat([
             'The automatic corner finder was not able to decide how the pattern is oriented. Please indicate the number of corners in direction of corners [0 -> 1]: ']))
@@ -244,14 +244,14 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
     PlotCornerNumber = copy([])
     for i in arange(1, rows, 1).flat:
         for j in arange(1, (cols - deltaCols), 1).flat:
-            if cornersX(i, j) != - 1:
+            if cornersX[i, j] != - 1:
                 # Save for plotting later
-                PlotCornersX = concat([PlotCornersX, cornersX(i, j)])
-                PlotCornersY = concat([PlotCornersY, cornersY(i, j)])
+                PlotCornersX = concat([PlotCornersX, cornersX[i, j]])
+                PlotCornersY = concat([PlotCornersY, cornersY[i, j]])
                 PlotCornerNumber = concat([PlotCornerNumber, cornerNumber])
                 if use_corner_find:
                     # Apply the corner finder
-                    xxi = cornerfinder(concat([[cornersX(i, j)], [cornersY(i, j)]]), I, winty, wintx)
+                    xxi = cornerfinder(concat([[cornersX[i, j]], [cornersY[i, j]]]), I, winty, wintx)
                     PlotXxiX = concat([PlotXxiX, xxi[1]])
                     PlotXxiY = concat([PlotXxiY, xxi[2]])
                 if cornerNumber == 0:
@@ -265,23 +265,23 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
     figure[2]
     image(I)
     colormap(calib_data.map)
-    set(2, 'color', concat([1, 1, 1]))
+    set(2, color=concat([1, 1, 1]))
     title(cellarray([[concat(['Image ', str(kk)])],
                      [concat([str(numOfFoundCorners), ' / ', str(numCorners), ' corner have been found.'])],
                      [concat(['Press ENTER to continue.'])]]))
     h = get(gca, 'title')
-    set(h, 'FontWeight', 'bold')
+    set(h, fontweight='bold')
     axis(concat([min_x, max_x, min_y, max_y]))
     # Plot the original corners
     figure[2]
     hold('on')
-    plot(PlotCornersX, PlotCornersY, '+', 'color', 'red', 'linewidth', 2)
+    plot(PlotCornersX, PlotCornersY, '+', color='red', linewidth=2)
     if use_corner_find:
         # Plot the "corner finder enhanced" corners
-        plot(PlotXxiX, PlotXxiY, '+', 'color', 'blue', 'linewidth', 2)
+        plot(PlotXxiX, PlotXxiY, '+', color='blue', linewidth=2)
 
     text(PlotCornersX.T + 3, PlotCornersY.T + 3, str(PlotCornerNumber.T))
-    set(findobj('type', 'text'), 'color', 'red')
+    set(findobj('type', 'text'), color='red')
     hold('off')
     pause
     # ADD NEW CORNERS
@@ -320,7 +320,7 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
                 nextCorner = 0
                 continue
             # Continue, if corner is already labeled
-            if cornersX(i, j) != - 1:
+            if cornersX[i, j] != - 1:
                 if mode == 1:
                     nextCorner += 1
                 else:
@@ -336,7 +336,7 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
                                  [concat([str(numCornerThreshold - numOfFoundCorners), ' corner is missing.'])],
                                  [concat(['Please place corner no. ', str(nextCorner), ' on the plot.'])]]))
             h = get(gca, 'title')
-            set(h, 'FontWeight', 'bold')
+            set(h, fontweight='bold')
             xi, yi, button = ginput3(1, nargout=3)
             if button > 1:
                 mode = dot(mode, - 1)
@@ -352,9 +352,9 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
                 xi = xxi[1]
                 yi = xxi[2]
             figure[2]
-            plot(xi, yi, '+', 'color', 'red', 'linewidth', 2)
+            plot(xi, yi, '+', color='red', linewidth=2)
             text(xi + 3, yi + 3, str(nextCorner))
-            set(findobj('type', 'text'), 'color', 'red')
+            set(findobj('type', 'text'), color='red')
             cornersX[i, j] = xi
             cornersY[i, j] = yi
             if nextCorner <= cornerNumberMin:
@@ -393,8 +393,8 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
         i = min_i + floor(iteration / (cols - deltaCols))
         j = mod((min_j - 1 + iteration), cols - deltaCols) + 1
         iteration += 1
-        x = concat([x, cornersX(i, j)])
-        y = concat([y, cornersY(i, j)])
+        x = concat([x, cornersX[i, j]])
+        y = concat([y, cornersY[i, j]])
         if (iteration >= logical_or(numCorners, i) > rows):
             break
 
@@ -415,8 +415,8 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
     #             xTemp = x;
     #             yTemp = y;
     #             for i = 1:1:lengthl
-    #                 x(i) = xTemp(lengthl+1 - i);
-    #                 y(i) = yTemp(lengthl+1 - i);
+    #                 x[i] = xTemp(lengthl+1 - i);
+    #                 y[i] = yTemp(lengthl+1 - i);
     #             end
     #         end
     #     end
@@ -431,11 +431,11 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
         figure[2]
         image(I)
         colormap(calib_data.map)
-        set(2, 'color', concat([1, 1, 1]))
+        set(2, color=concat([1, 1, 1]))
         title(cellarray([[concat(['Image ', str(kk)])], [concat(['Next you can reposition badly placed corners.'])],
                          [concat(['Press ENTER to continue.'])]]))
         h = get(gca, 'title')
-        set(h, 'FontWeight', 'bold')
+        set(h, fontweight='bold')
         axis(concat([min_x, max_x, min_y, max_y]))
         figure[2]
         hold('on')
@@ -445,14 +445,14 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
 
             # Display the (updated) corners
             figure[2]
-            plot(x, y, '+', 'color', 'red', 'linewidth', 2)
+            plot(x, y, '+', color='red', linewidth=2)
             text(x.T + 3, y.T + 3, str(iNumber.T))
-            set(findobj('type', 'text'), 'color', 'red')
+            set(findobj('type', 'text'), color='red')
             figure[2]
             title(cellarray([[concat(['Image ', str(kk)])], [concat(['Left click on a corner to replace it.'])],
                              [concat(['Right click anywhere to quit replacement mode.'])]]))
             h = get(gca, 'title')
-            set(h, 'FontWeight', 'bold')
+            set(h, fontweight='bold')
             xdel, ydel, button = ginput3(1, nargout=3)
             if button > 1:
                 break
@@ -472,16 +472,16 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
             figure[2]
             image(I)
             colormap(calib_data.map)
-            set(2, 'color', concat([1, 1, 1]))
+            set(2, color=concat([1, 1, 1]))
             title(cellarray([[concat(['Image ', str(kk)])], [concat(['Left click on the desired new location.'])],
                              [concat([' '])]]))
             h = get(gca, 'title')
-            set(h, 'FontWeight', 'bold')
+            set(h, fontweight='bold')
             figure[2]
             hold('on')
-            plot(x, y, '+', 'color', 'red', 'linewidth', 2)
+            plot(x, y, '+', color='red', linewidth=2)
             text(x.T + 3, y.T + 3, str(iNumber.T))
-            set(findobj('type', 'text'), 'color', 'red')
+            set(findobj('type', 'text'), color='red')
             xnew, ynew, button = ginput3(1, nargout=3)
             x[nearestCornerID] = xnew
             y[nearestCornerID] = ynew
@@ -522,8 +522,8 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
                           yTemp(1, arange(end(), end() - inc_dir + 2, - 1)),
                           yTemp(1, arange(end() - inc_dir + 1, 1, - inc_dir))])
         area[i] = abs(trapz(xborder, yborder))
-        xTemp = concat([xTemp(1, arange(2, end())), xTemp(1, 1)])
-        yTemp = concat([yTemp(1, arange(2, end())), yTemp(1, 1)])
+        xTemp = concat([xTemp(1, arange(2, end())), xTemp[1, 1]])
+        yTemp = concat([yTemp(1, arange(2, end())), yTemp[1, 1]])
 
     shift = find(area == max(area)) - 1
     if shift > 0:
@@ -538,9 +538,9 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
         image(I)
         colormap(calib_data.map)
         hold('on')
-        plot(x, y, '+', 'color', 'red', 'linewidth', 2)
+        plot(x, y, '+', color='red', linewidth=2)
         text(x.T + 3, y.T + 3, str(iNumber.T))
-        set(findobj('type', 'text'), 'color', 'red')
+        set(findobj('type', 'text'), color='red')
         axis(concat([min_x, max_x, min_y, max_y]))
 
     ###########################################################################
@@ -593,11 +593,11 @@ def click_ima_calib_rufli(kk, use_corner_find, calib_data: CalibData):
             [[concat(['Image ', str(kk)])], [concat(['The corners have been renumbered in the right order.'])],
              [concat(['Press ENTER to continue.'])]]))
         h = get(gca, 'title')
-        set(h, 'FontWeight', 'bold')
+        set(h, fontweight='bold')
         hold('on')
-        plot(x, y, '+', 'color', 'red', 'linewidth', 2)
+        plot(x, y, '+', color='red', linewidth=2)
         text(x.T + 3, y.T + 3, str(iNumber.T))
-        set(findobj('type', 'text'), 'color', 'red')
+        set(findobj('type', 'text'), color='red')
         axis(concat([min_x, max_x, min_y, max_y]))
         draw_axes(calib_data.Xp_abs[:, :, kk], calib_data.Yp_abs[:, :, kk],
                   calib_data.n_sq_y)

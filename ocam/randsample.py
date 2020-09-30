@@ -73,7 +73,7 @@ def randsample(n=None, k=None, replace=None, w=None):
                 # If the sample is a sizeable fraction of the population,
                 # just randomize the whole population (which involves a full
                 # sort of n random values), and take the first k.
-                if dot(4, k) > n:
+                if 4 * k > n:
                     rp = randperm(n)
                     y = rp(arange(1, k))
                     # is wasteful.  Repeatedly sample with replacement until there are

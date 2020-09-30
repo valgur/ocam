@@ -17,7 +17,7 @@ def imunwrap(I=None, center=None, Rmax=None, Rmin=None, bilinear=None, width=Non
     nargin = imunwrap.nargin
 
     if nargin == 3:
-        Rmin = round(dot(0.2, Rmax))
+        Rmin = round(0.2 * Rmax)
         bilinear = 1
         width = 360
     else:
@@ -47,7 +47,7 @@ def imunwrap(I=None, center=None, Rmax=None, Rmin=None, bilinear=None, width=Non
     J, II = meshgrid(arange(1, cols), arange(1, rows), nargout=2)
     THETA = dot(dot(- (J - 1) / width, 2), np.pi)
     RHO = Rmax + 1 - II
-    X = xc + multiply(RHO, np.cos(THETA))
+    X = xc + multiply(RHO, cos(THETA))
     Y = yc + multiply(RHO, sin(THETA))
     U = floor(Y)
     V = floor(X)
@@ -66,18 +66,18 @@ def imunwrap(I=None, center=None, Rmax=None, Rmin=None, bilinear=None, width=Non
         indA2 = dot((U), size(I, 1)) + V
         indA3 = dot((U - 1), size(I, 1)) + (V + 1)
         indA4 = dot(U, size(I, 1)) + (V + 1)
-        R[fIND] = multiply(RI(indA1(fIND)), A1(fIND)) + \
-                  multiply(RI(indA2(fIND)), A2(fIND)) + \
-                  multiply(RI(indA3(fIND)), A3(fIND)) + \
-                  multiply(RI(indA4(fIND)), A4(fIND))
-        G[fIND] = multiply(GI(indA1(fIND)), A1(fIND)) + \
-                  multiply(GI(indA2(fIND)), A2(fIND)) + \
-                  multiply(GI(indA3(fIND)), A3(fIND)) + \
-                  multiply(GI(indA4(fIND)), A4(fIND))
-        B[fIND] = multiply(BI(indA1(fIND)), A1(fIND)) + \
-                  multiply(BI(indA2(fIND)), A2(fIND)) + \
-                  multiply(BI(indA3(fIND)), A3(fIND)) + \
-                  multiply(BI(indA4(fIND)), A4(fIND))
+        R[fIND] = multiply(RI(indA1(fIND)), A1[fIND]) + \
+                  multiply(RI(indA2(fIND)), A2[fIND]) + \
+                  multiply(RI(indA3(fIND)), A3[fIND]) + \
+                  multiply(RI(indA4(fIND)), A4[fIND])
+        G[fIND] = multiply(GI(indA1(fIND)), A1[fIND]) + \
+                  multiply(GI(indA2(fIND)), A2[fIND]) + \
+                  multiply(GI(indA3(fIND)), A3[fIND]) + \
+                  multiply(GI(indA4(fIND)), A4[fIND])
+        B[fIND] = multiply(BI(indA1(fIND)), A1[fIND]) + \
+                  multiply(BI(indA2(fIND)), A2[fIND]) + \
+                  multiply(BI(indA3(fIND)), A3[fIND]) + \
+                  multiply(BI(indA4(fIND)), A4[fIND])
     else:
         # if NOT BILINEAR
         R[find(IND)] = RI(IND(find(IND)))

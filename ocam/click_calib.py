@@ -30,20 +30,6 @@ def click_calib(calib_data: CalibData, ima_numbers=None, use_video_mode=True, us
     if ima_numbers is None:
         ima_numbers = arange(1, len(calib_data.ima_proc))
 
-    # Arranging the pixel of the world
-    calib_data.Xt = copy([])
-    calib_data.Yt = copy([])
-    for i in arange(0, calib_data.n_sq_x).flat:
-        for j in arange(0, calib_data.n_sq_y).flat:
-            calib_data.Yt = concat([
-                [calib_data.Yt],
-                [j * calib_data.dY]
-            ])
-            calib_data.Xt = concat([
-                [calib_data.Xt],
-                [i * calib_data.dX]
-            ])
-
     use_corner_find = True
     if use_video_mode:
         count = 0

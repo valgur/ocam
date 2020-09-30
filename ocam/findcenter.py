@@ -40,8 +40,8 @@ def findcenter(calib_data: CalibData):
 
     pxc = calib_data.ocam_model.xc
     pyc = calib_data.ocam_model.yc
-    width = calib_data.ocam_model.width
-    height = calib_data.ocam_model.height
+    width = calib_data.width
+    height = calib_data.height
     regwidth = (width / 2)
     regheight = (height / 2)
     yceil = 5
@@ -51,7 +51,7 @@ def findcenter(calib_data: CalibData):
     yregstart = pyc - (regwidth / 2)
     yregstop = pyc + (regwidth / 2)
     print('Iteration ', end='')
-    for glc in arange(1, 9).flat:
+    for glc in range(1, 9 + 1):
         yreg, xreg = meshgrid(arange(yregstart, yregstop + 1 / yceil, (yregstop - yregstart) / yceil),
                               arange(xregstart, xregstop + 1 / xceil, (xregstop - xregstart) / xceil), nargout=2)
         ic_proc = concat([arange(1, size(xreg, 1))])
@@ -72,8 +72,8 @@ def findcenter(calib_data: CalibData):
                     continue
                 MSE = reprojectpoints_fun(calib_data.Xt, calib_data.Yt, calib_data.Xp_abs, calib_data.Yp_abs,
                                           calib_data.ocam_model.xc, calib_data.ocam_model.yc, calib_data.RRfin,
-                                          calib_data.ocam_model.ss, calib_data.ima_proc, calib_data.ocam_model.width,
-                                          calib_data.ocam_model.height)
+                                          calib_data.ocam_model.ss, calib_data.ima_proc, calib_data.width,
+                                          calib_data.height)
                 # obrand_start 
                 # speedup removed to compensate for calibration errors
                 #            if ic>1 & jc>1

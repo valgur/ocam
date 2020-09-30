@@ -25,12 +25,12 @@ close_('all')
 nr_cams = 7
 nr_tests = 5
 ## load scaramuzza data
-for i in arange(1, nr_tests).flat:
+for i in range(1, nr_tests + 1):
     path = sprintf('CalibData%i.mat', i)
     calibMeth[i] = load(path)
 
-for cam in arange(1, nr_cams).flat:
-    for meth in arange(1, nr_tests).flat:
+for cam in range(1, nr_cams + 1):
+    for meth in range(1, nr_tests + 1):
         rms[cam, meth] = calibMeth[meth].calib_data[cam].rms
 
 figure
@@ -39,8 +39,8 @@ title('root mean square error')
 xlabel('data set')
 ylabel('root mean square error [pixel]')
 legend('ocam standard', 'ocam subpixel', 'urban', 'urban subpixel', 'urban subpixel robust')
-for cam in arange(1, nr_cams).flat:
-    for meth in arange(1, nr_tests).flat:
+for cam in range(1, nr_cams + 1):
+    for meth in range(1, nr_tests + 1):
         runtime[cam, meth] = calibMeth[meth].calib_data[cam].runtime
 
 figure
@@ -50,8 +50,8 @@ xlabel('data set')
 ylabel('time [s]')
 legend('ocam standard', 'ocam subpixel', 'urban', 'urban subpixel', 'urban subpixel robust')
 badIdx = copy([])
-for cam in arange(1, nr_cams).flat:
-    for meth in arange(1, 2).flat:
+for cam in range(1, nr_cams + 1):
+    for meth in range(1, 2 + 1):
         stdEOangle = copy([])
         stdEOpos = copy([])
         for imgs in calibMeth[meth].calib_data[cam].ima_proc.flat:
@@ -72,7 +72,7 @@ for cam in arange(1, nr_cams).flat:
         badIdx = copy([])
 
 lauf = 0
-for cam in arange(1, nr_cams).flat:
+for cam in range(1, nr_cams + 1):
     for meth in arange(3, nr_tests).flat:
         stdEOangle = copy([])
         stdEOpos = copy([])
@@ -103,7 +103,7 @@ ylabel('standard deviation [mm]')
 legend('ocam standard', 'ocam subpixel', 'urban', 'urban subpixel', 'urban subpixel robust')
 ## IO, c and a0
 lauf = 0
-for cam in arange(1, nr_cams).flat:
-    for meth in arange(1, nr_tests).flat:
+for cam in range(1, nr_cams + 1):
+    for meth in range(1, nr_tests + 1):
         std_cde[cam, meth] = calibMeth[meth].calib_data[cam].statIO.stdIO[3]
         std_a0[cam, meth] = calibMeth[meth].calib_data[cam].statIO.stdIO[6]

@@ -22,7 +22,7 @@
 # Code was added to 
 # save statistical relevant variables
 
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
 
 from imageio import imread
 
@@ -31,15 +31,25 @@ from .libsmop import *
 
 @dataclass
 class OCamModel:
+    img_shape: InitVar[(int, int)] = None  # (height, width) for initialization
+
     ss: matlabarray = None  # Coefficients of polynomial
     xc: float = None  # x-coordinate of image center
     yc: float = None  # y-coordinate of image center
     # Affine transformation parameters
-    c: float = None
-    d: float = None
-    e: float = None
+    c: float = 1
+    d: float = 0
+    e: float = 0
     width: int = None  # Image width
     height: int = None  # Image height
+
+    def __post_init__(self, img_shape):
+        if img_shape:
+            self.height = img_shape[0]
+            self.width = img_shape[1]
+            self.xc = round(self.height / 2.)
+            self.yc = round(self.width / 2.)
+            # self.ss = copy([np.sqrt(self.width * self.height)] + [0] * self.taylor_order)
 
 
 @dataclass
@@ -62,7 +72,7 @@ class StatIO:
 class CalibData:
     """Stores image and calibration data used by the calibration toolbox"""
 
-    imgs: matlabarray  # Image file names
+    imgs: list  # Image file names
     n_sq_x: int  # Number of squares in x-direction
     n_sq_y: int  # Number of squares in y-direction
     dX: float  # Width of a square on checkerboard (mm)
@@ -126,8 +136,15 @@ class CalibData:
         """Indices of images used"""
         return find(self.active_images)
 
+    @property
+    def width(self):
+        return self.ocam_model.width
+
+    @property
+    def height(self):
+        return self.ocam_model.height
+
     def __post_init__(self):
-        self.imgs = copy(self.imgs)
         if self.n_imgs == 0:
             raise ValueError('No input images provided')
 
@@ -140,16 +157,26 @@ class CalibData:
         else:
             assert len(self.active_images) == self.n_imgs
 
-        self.Xt = copy([])
-        self.Yt = copy([])
-        self.ocam_model.xc = round(self.ocam_model.height / 2.)
-        self.ocam_model.yc = round(self.ocam_model.width / 2.)
-
         img = self.read_image(1)
-        self.ocam_model.height, self.ocam_model.width = img.shape[:2]
+        self.ocam_model = OCamModel(img.shape[:2])
+
+        # Arranging the pixel of the world
+        Xt = []
+        Yt = []
+        for i in range(0, self.n_sq_x + 1):
+            for j in range(0, self.n_sq_y + 1):
+                Yt.append(j * self.dY)
+                Xt.append(i * self.dX)
+        self.Xt = copy(Xt).T
+        self.Yt = copy(Yt).T
 
     def read_image(self, idx):
-        img = imread(self.imgs[idx])
+        """
+        Parameters
+        ----------
+        idx : 1-based index
+        """
+        img = imread(self.imgs[idx - 1])
         if img.shape[2] > 1:
             img = 0.299 * img[:, :, 0] + 0.587 * img[:, :, 1] + 0.114 * img[:, :, 2]
         img = matlabarray(np.squeeze(img))
