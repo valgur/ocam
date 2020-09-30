@@ -189,8 +189,8 @@ def _refine_corners(cornersX: np.ndarray, cornersY: np.ndarray, img: matlabarray
     # added by steffen urban
     rows, cols = cornersX.shape
     height, width = img.shape
-    wintx = ceil(height / 100)
-    winty = ceil(height / 100)
+    wintx = int(np.ceil(height / 100))
+    winty = int(np.ceil(height / 100))
     for i in range(rows):
         for j in range(cols):
             if cornersX[i, j] >= 0:
