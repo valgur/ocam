@@ -29,10 +29,10 @@ import tempfile
 import matplotlib.pyplot as plt
 import numpy as np
 
+from . import libsmop
 from .calib_data import CalibData
 from .cornerfinder import cornerfinder
 from .draw_axes import draw_axes
-from .libsmop import matlabarray, zeros, arange, diff, conv, copy, concat, end, find, trapz, sqrt
 
 
 def get_checkerboard_corners(calib_data: CalibData, kk: int, refine_corners: bool = True, visualize: bool = False):
@@ -46,7 +46,6 @@ def get_checkerboard_corners(calib_data: CalibData, kk: int, refine_corners: boo
         return None, None
 
     # cornersX, cornersY = _fix_ambiguous_corners(corner_info, cornersX, cornersY)
-    cornersX, cornersY = _pixel_coords_to_matlab_format(cornersX, cornersY)
     if refine_corners:
         cornersX, cornersY = _refine_corners(cornersX, cornersY, img)
     # _fix_orientation_ambiguity()
@@ -61,6 +60,13 @@ def get_checkerboard_corners(calib_data: CalibData, kk: int, refine_corners: boo
         visualize_corners(x, y, img, f'Image {kk}', n_sq_y)
 
     print('Done')
+
+    # convert to Matlab format for compatibility
+    x[x >= 0] += 1
+    y[x >= 0] += 1
+    x = libsmop.copy(x)
+    y = libsmop.copy(y)
+
     # return swapped x and y
     return y.T, x.T
 
@@ -137,15 +143,7 @@ def _fix_ambiguous_corners(cornerInfo, cornersX, cornersY):
     return cornersX, cornersY
 
 
-def _pixel_coords_to_matlab_format(cornersX: np.ndarray, cornersY: np.ndarray) -> (np.ndarray, np.ndarray):
-    # Add one pixel to every non "-1" value, since Matlab starts numbering
-    # at one, whereas c++ starts at zero.
-    cornersX[cornersX >= 0] += 1
-    cornersY[cornersX >= 0] += 1
-    return cornersX, cornersY
-
-
-def _fix_orientation_ambiguity(self):
+def _fix_orientation_ambiguity():
     pass
     # #ORIENTATION AMBIGUITY?
     # ###########################################################################
@@ -184,7 +182,7 @@ def _fix_orientation_ambiguity(self):
     # end
 
 
-def _refine_corners(cornersX: np.ndarray, cornersY: np.ndarray, img: matlabarray) -> (np.ndarray, np.ndarray):
+def _refine_corners(cornersX: np.ndarray, cornersY: np.ndarray, img: np.array) -> (np.ndarray, np.ndarray):
     # Apply the corner finder
     # added by steffen urban
     rows, cols = cornersX.shape
@@ -194,13 +192,13 @@ def _refine_corners(cornersX: np.ndarray, cornersY: np.ndarray, img: matlabarray
     for i in range(rows):
         for j in range(cols):
             if cornersX[i, j] >= 0:
-                x, y = cornerfinder(copy([cornersX[i, j], cornersY[i, j]]).T, img, winty, wintx)[0]
+                x, y = cornerfinder(np.array([[cornersX[i, j], cornersY[i, j]]]).T, img, winty, wintx)[0]
                 cornersX[i, j] = x
                 cornersY[i, j] = y
     return cornersX, cornersY
 
 
-def _flatten_corner_matrices(cornersX: np.ndarray, cornersY: np.ndarray) -> (matlabarray, matlabarray):
+def _flatten_corner_matrices(cornersX: np.ndarray, cornersY: np.ndarray) -> (np.ndarray, np.ndarray):
     # Save all corners in two arrays for further processing by other functions
     rows, cols = cornersX.shape
     num_corners = rows * cols
@@ -226,7 +224,7 @@ def _flatten_corner_matrices(cornersX: np.ndarray, cornersY: np.ndarray) -> (mat
         y.append(float(cornersY[i, j]))
         if iteration >= num_corners or i >= rows:
             break
-    return copy(x), copy(y)
+    return np.array(x), np.array(y)
 
 
 def _fix_orientation_ambiguity2():
@@ -255,57 +253,49 @@ def _fix_orientation_ambiguity2():
     #     end
 
 
-def _fix_numbering_direction(x, y, n_sq_x, n_sq_y):
+def _fix_numbering_direction(x: np.ndarray, y: np.ndarray, n_sq_x: int, n_sq_y: int) -> (np.ndarray, np.ndarray):
     ###########################################################################
     # Check, whether the numbering increases along the longer or the shorter pattern dimension:
     ###########################################################################
     n_cor_min = min(n_sq_x + 1, n_sq_y + 1)
     n_cor_max = max(n_sq_x + 1, n_sq_y + 1)
     n = n_cor_max * n_cor_min - 1
-    hmin = zeros(1, n)
-    hmin[1, arange(1, n, n_cor_min)] = 1
-    hmax = zeros(1, n)
-    hmax[1, arange(1, n, n_cor_max)] = 1
-    dxy = sqrt(diff(x.T)**2 + diff(y.T)**2).T
-    pmin = conv(hmin, dxy)
-    pmin = pmin.max()
-    pmax = conv(hmax, dxy)
-    pmax = pmax.max()
-    if pmin > pmax:
-        inc_dir = n_cor_min
-        oth_dir = n_cor_max
-    else:
-        inc_dir = n_cor_max
-        oth_dir = n_cor_min
+    hmin = np.zeros(n)
+    hmin[:n:n_cor_min] = 1
+    hmax = np.zeros(n)
+    hmax[:n:n_cor_max] = 1
+    dxy = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+    pmin = np.convolve(hmin, dxy).max()
+    pmax = np.convolve(hmax, dxy).max()
+    inc_dir = n_cor_min if pmin > pmax else n_cor_max
     # Rearrange numbering from starting point
-    xTemp = copy(x)
-    yTemp = copy(y)
-    area = copy([])
-    for i in arange(1, x.size - 1).flat:
-        n = xTemp.shape[1]
+    xTemp = x.copy()
+    yTemp = y.copy()
+    n = len(x)
+    area = np.empty(n - 1)
+    for i in range(n - 1):
         xborder = np.hstack([
-            xTemp[1, arange(1, inc_dir - 1)],
-            xTemp[1, arange(inc_dir, n - inc_dir, inc_dir)],
-            xTemp[1, arange(n, n - inc_dir + 2, - 1)],
-            xTemp[1, arange(n - inc_dir + 1, 1, - inc_dir)]
+            xTemp[:inc_dir - 1],
+            xTemp[inc_dir - 1: -inc_dir:inc_dir],
+            xTemp[-inc_dir + 1:][::-1],
+            xTemp[:-inc_dir + 1:inc_dir][::-1]
         ])
         yborder = np.hstack([
-            yTemp[1, arange(1, inc_dir - 1)],
-            yTemp[1, arange(inc_dir, n - inc_dir, inc_dir)],
-            yTemp[1, arange(n, n - inc_dir + 2, - 1)],
-            yTemp[1, arange(n - inc_dir + 1, 1, - inc_dir)],
+            yTemp[:inc_dir - 1],
+            yTemp[inc_dir - 1:-inc_dir:inc_dir],
+            yTemp[-inc_dir + 1:][::-1],
+            yTemp[:-inc_dir + 1:inc_dir][::-1]
         ])
-        area[i] = abs(trapz(xborder.flatten(), yborder.flatten()))
-        xTemp = matlabarray(np.hstack([xTemp[1, arange(2, n)], xTemp[1, 1]]))
-        yTemp = matlabarray(np.hstack([yTemp[1, arange(2, n)], yTemp[1, 1]]))
-    shift = find(area == max(area)) - 1
-    if shift > 0:
-        x = concat([x(1, arange(1 + shift, end())), x(1, arange(1, shift))])
-        y = concat([y(1, arange(1 + shift, end())), y(1, arange(1, shift))])
+        area[i] = np.abs(np.trapz(xborder, yborder))
+        xTemp = np.roll(xTemp, -1)
+        yTemp = np.roll(yTemp, -1)
+    shift = np.argmax(area)
+    x = np.roll(x, shift)
+    y = np.roll(y, shift)
     return x, y
 
 
-def _fix_nonsquare_board_ambiguity(x, y, n_sq_x, n_sq_y):
+def _fix_nonsquare_board_ambiguity(x: np.ndarray, y: np.ndarray, n_sq_x: int, n_sq_y: int) -> (np.ndarray, np.ndarray):
     # This algorithm was first designed to be used with square patterns only,
     # where the starting corner is meaningless, since every orientation +n*90
     # degrees is structurally equivalent.
@@ -320,28 +310,24 @@ def _fix_nonsquare_board_ambiguity(x, y, n_sq_x, n_sq_y):
     # dist2 = (x(1,n_cor_max)-x(1,n_cor_max+1))^2 + (y(1,n_cor_max)-y(1,n_cor_max+1))^2;
     n_cor_x = n_sq_x + 1
     n_cor_y = n_sq_y + 1
-    dist1 = (x[1, n_cor_x] - x[1, n_cor_x + 1])**2 + (y[1, n_cor_x] - y[1, n_cor_x + 1])**2
-    dist2 = (x[1, n_cor_y] - x[1, n_cor_y + 1])**2 + (y[1, n_cor_y] - y[1, n_cor_y + 1])**2
+    dist1 = (x[n_cor_x - 1] - x[n_cor_x])**2 + (y[n_cor_x - 1] - y[n_cor_x])**2
+    dist2 = (x[n_cor_y - 1] - x[n_cor_y])**2 + (y[n_cor_y - 1] - y[n_cor_y])**2
     if dist1 > dist2:
         # We have it wrongly numbered, renumber
-        x_temp = copy(x)
-        y_temp = copy(y)
-        lengthl = x.shape[1]
-        iter_mult = n_cor_x
+        x_temp = x.copy()
+        y_temp = y.copy()
         iter_offset = 0
-        for i in range(1, lengthl + 1):
-            j = ((i - 1) % n_cor_y) + 1
-            x[i] = x_temp[j * iter_mult - iter_offset]
-            y[i] = y_temp[j * iter_mult - iter_offset]
-            if j * iter_mult > n_cor_x * (n_cor_y - 1):
+        for i in range(len(x)):
+            j = i % n_cor_y + 1
+            x[i] = x_temp[j * n_cor_x - iter_offset - 1]
+            y[i] = y_temp[j * n_cor_x - iter_offset - 1]
+            if j * n_cor_x > n_cor_x * (n_cor_y - 1):
                 iter_offset += 1
     return x, y
 
 
 def _calculate_bounds(x: np.ndarray, y: np.ndarray, img_shape):
     # Calculate board bounds on image for visualization
-    x = np.array(x).flatten()
-    y = np.array(y).flatten()
     mask = (x >= 0) & (y >= 0)
     max_x = x[mask].max()
     min_x = x[mask].min()
@@ -362,14 +348,12 @@ def _calculate_bounds(x: np.ndarray, y: np.ndarray, img_shape):
 
 
 def visualize_corners(x, y, img, title, n_sq_y, corner_color='red', axis_color='lime', cmap='gray'):
-    x = np.array(x).flatten()
-    y = np.array(y).flatten()
     img = np.array(img)
     fig, ax = plt.subplots()
     ax.set_title(title, dict(fontweight='bold'))
     ax.imshow(img, cmap=cmap, interpolation='bilinear')
     draw_axes(ax, y, x, n_sq_y, axis_color)
-    ax.plot(x - 1, y - 1, '+', c=corner_color, linewidth=2)
+    ax.plot(x, y, '+', c=corner_color, linewidth=2)
     for i in range(len(x)):
         ax.text(x[i] + 3, y[i] + 3, str(i + 1), dict(color=corner_color))
     min_x, max_x, min_y, max_y = _calculate_bounds(x, y, img.shape)

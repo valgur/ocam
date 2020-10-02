@@ -3,12 +3,14 @@ from numpy.linalg import norm, svd
 from scipy.signal import convolve2d
 
 
-def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, line_feat=True):
-    """Finds the sub-pixel corners on the image I with initial guess xt.
+def cornerfinder(xt: np.array, img: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, line_feat=True):
+    """Finds the sub-pixel corners on the image with initial guess xt.
 
     xt and xc are 2xN matrices. The first component is the x coordinate
     (horizontal) and the second component is the y coordinate (vertical)
-    
+
+    Input/output pixel coordinates are assumed to be 0-based.
+
     Set line_feat to True to allow for extraction of line features.
 
     Based on Harris corner finder method
@@ -19,15 +21,17 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
     good is a binary vector indicating whether a feature point has been properly found.
 
     Add a zero zone of size wx2,wy2
-    July 15th, 1999 - Bug on the mask building... fixed + change to Gaussian mask with higher
+    July 15th, 1999 - Bug on the mask building fixed + change to Gaussian mask with higher
     resolution and larger number of iterations.
 
     California Institute of Technology
     (c) Jean-Yves Bouguet -- Oct. 14th, 1997
     """
 
-    I = np.array(I)
+    img = np.array(img)
     xt = np.array(xt)
+    # Assume input coordinates are 0-based, convert to Matlab format
+    xt += 1
     xt = np.fliplr(xt.T)
 
     # mask = ones(2*wintx+1,2*winty+1);
@@ -48,11 +52,11 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
     offy, offx = np.meshgrid(np.arange(-winty, winty + 1), np.arange(-wintx, wintx + 1))
     resolution = 0.005
     MaxIter = 10
-    nx, ny = I.shape
+    nx, ny = img.shape
     N = xt.shape[0]
     xc = xt.copy()  # first guess... they don't move !!!
 
-    type_ = np.zeros(N)
+    type_ = np.zeros(N, dtype=bool)
     for i in range(N):
         v_extra = resolution + 1  # just larger than resolution
         compt = 0  # no iteration yet
@@ -68,11 +72,11 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
             if itIx > 0:
                 vIx = np.array([[itIx, 1 - itIx, 0]]).T
             else:
-                vIx = np.array([[0, 1 + itIx, - itIx]]).T
+                vIx = np.array([[0, 1 + itIx, -itIx]]).T
             if itIy > 0:
                 vIy = np.array([[itIy, 1 - itIy, 0]])
             else:
-                vIy = np.array([[0, 1 + itIy, - itIy]])
+                vIy = np.array([[0, 1 + itIy, -itIy]])
 
             # What if the sub image is not in?
             if crIx - wintx - 2 < 1:
@@ -94,7 +98,7 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
                 ymin = crIy - winty - 2
                 ymax = crIy + winty + 2
 
-            SI = I[xmin - 1:xmax, ymin - 1:ymax]  # The necessary neighborhood
+            SI = img[xmin - 1:xmax, ymin - 1:ymax]  # The necessary neighborhood
             SI = convolve2d(convolve2d(SI, vIx, 'same'), vIy, 'same')
             SI = SI[1:2 * wintx + 4, 1:2 * winty + 4]  # The subpixel interpolated neighborhood
             gx, gy = np.gradient(np.array(SI))  # The gradient image
@@ -116,27 +120,27 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
             xc2 = np.array([[c * bb[0] - b * bb[1], a * bb[1] - b * bb[0]]]).T / dt
             if line_feat:
                 G = np.array([[a, b], [b, c]])
-                U, S, Vh = svd(G)
+                U, S, Vt = svd(G, hermitian=True)
                 # If non-invertible, then project the point onto the edge orthogonal:
                 if S[0] / S[1] > 50:
                     # projection operation
-                    xc2 += ((xc[i, :] - xc2) * Vh[1, :]).sum(axis=0) @ Vh[1, :]
-                    type_[i] = 1
-                #      G = [a b;b c];
-                #      [U,S,V]  = svd(G);
-                #      if S(1,1)/S(2,2) > 150,
-                #	 bb2 = U'*bb;
-                #	 xc2 = (V*[bb2[1]/S(1,1) ;0])';
-                #      else
-                #	 xc2 = [c*bb[1]-b*bb[2] a*bb[2]-b*bb[1]]/dt;
-                #      end;
+                    xc2 += ((xc[i, :] - xc2) * Vt[1, :]).sum(axis=0) @ Vt[1, :]
+                    type_[i] = True
+                # G = [a b;b c];
+                # [U,S,V]  = svd(G);
+                # if S(1,1)/S(2,2) > 150,
+                #     bb2 = U'*bb;
+                #     xc2 = (V*[bb2[1]/S(1,1) ;0])';
+                # else
+                #     xc2 = [c*bb[1]-b*bb[2] a*bb[2]-b*bb[1]]/dt;
+                # end;
                 # if (abs(a)> 50*abs(c)),
-                #	 xc2 = [(c*bb[1]-b*bb[2])/dt xc[i,2]];
-                #      elseif (abs(c)> 50*abs(a))
-                #	 xc2 = [xc[i,1] (a*bb[2]-b*bb[1])/dt];
-                #      else
-                #	 xc2 = [c*bb[1]-b*bb[2] a*bb[2]-b*bb[1]]/dt;
-                #      end;
+                #     xc2 = [(c*bb[1]-b*bb[2])/dt xc[i,2]];
+                # elseif (abs(c)> 50*abs(a))
+                #     xc2 = [xc[i,1] (a*bb[2]-b*bb[1])/dt];
+                # else
+                #     xc2 = [c*bb[1]-b*bb[2] a*bb[2]-b*bb[1]]/dt;
+                # end;
             v_extra = xc[i, :] - xc2
             xc[i, :] = np.squeeze(xc2)
             compt += 1
@@ -151,5 +155,7 @@ def cornerfinder(xt: np.array, I: np.array, wintx=5, winty=5, wx2=-1, wy2=-1, li
     if np.any(bad):
         xc[bad, :] = xt[bad, :]
     xc = np.fliplr(xc)
+    # Convert back from 1-based to 0-based coordinates
+    xc -= 1
 
     return xc.T, good, bad, type_
