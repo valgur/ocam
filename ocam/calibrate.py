@@ -26,7 +26,7 @@ from scipy.special import factorial
 from ocam.lsqlin import lsqlin
 
 
-def calibrate(Xt, Yt, Xp_abs, Yp_abs, xc, yc, taylor_order, ima_proc):
+def calibrate_linear(Xt, Yt, Xp_abs, Yp_abs, xc, yc, taylor_order, ima_proc):
     Yp = Yp_abs - yc
     Xp = Xp_abs - xc
     n_img, n_corners = Xp_abs.shape

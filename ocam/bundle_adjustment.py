@@ -22,7 +22,7 @@ from .calib_data import CalibData
 from .world2cam import omni3d2pixel
 
 
-def bundleAdjustmentUrban(calib_data, robust, verbose=True, optim_args=None):
+def bundle_adjustment(calib_data, robust, verbose=True, optim_args=None):
     if robust:
         print('Starting robust non-linear refinement')
     else:
@@ -46,7 +46,7 @@ def bundleAdjustmentUrban(calib_data, robust, verbose=True, optim_args=None):
 
     default_args = dict(xtol=1e-05, ftol=0.0001, max_nfev=1000, verbose=2 if verbose else 0)
     optim_args = {**default_args, **(optim_args or {})}
-    ba_result = least_squares(bundleErrUrban, x0, args=[calib_data, M, robust], **optim_args)
+    ba_result = least_squares(bundle_err, x0, args=[calib_data, M, robust], **optim_args)
     x_opt = ba_result['x']
     RT = x_opt[offset:].reshape(-1, 2, 3)
     RRfinOpt = np.zeros_like(calib_data.RRfin)
@@ -66,7 +66,7 @@ def bundleAdjustmentUrban(calib_data, robust, verbose=True, optim_args=None):
     calib_data.optimized = True
 
 
-def bundleErrUrban(x: np.ndarray, calib_data: CalibData, M: np.ndarray, robust: bool):
+def bundle_err(x: np.ndarray, calib_data: CalibData, M: np.ndarray, robust: bool):
     a, b, c, d, e = x[:5]
     offset = 6 + calib_data.taylor_order
     ssc = x[5:offset]
@@ -87,7 +87,7 @@ def bundleErrUrban(x: np.ndarray, calib_data: CalibData, M: np.ndarray, robust: 
     erry = calib_data.Yp_abs.ravel() - yp
     errW = np.r_[errx, erry]
     if robust:
-        w = huberWeight(errW)
+        w = huber_weight(errW)
         calib_data.weights = w
         errW = np.sqrt(w) * errW
 
@@ -95,7 +95,7 @@ def bundleErrUrban(x: np.ndarray, calib_data: CalibData, M: np.ndarray, robust: 
     return errW
 
 
-def huberWeight(v, k=1):
+def huber_weight(v, k=1):
     a = np.abs(v) <= k
     b = ~a
     weight = np.empty_like(v)

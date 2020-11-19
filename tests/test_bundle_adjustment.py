@@ -22,7 +22,7 @@ def calib_data():
 def test_bundle_err(calib_data):
     ocam.extract_corners(calib_data, visualize=False)
     ocam.calibration(calib_data, visualize=False)
-    ocam.bundleAdjustmentUrban(calib_data, robust=True)
+    ocam.bundle_adjustment(calib_data, robust=True)
     print(calib_data.ocam_model)
     print(calib_data.RRfin)
     r = np.sqrt(calib_data.ocam_model.width**2 + calib_data.ocam_model.height**2) / 2

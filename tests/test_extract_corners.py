@@ -74,10 +74,10 @@ def test_calibrate(calib_data):
         calib_data.ima_proc.sort()
 
     calib_data.taylor_order = 4
-    RRfin, ss = ocam.calibrate(calib_data.Xt, calib_data.Yt, calib_data.Xp_abs,
-                               calib_data.Yp_abs, calib_data.ocam_model.xc,
-                               calib_data.ocam_model.yc, calib_data.taylor_order,
-                               calib_data.ima_proc)
+    RRfin, ss = ocam.calibrate_linear(calib_data.Xt, calib_data.Yt, calib_data.Xp_abs,
+                                      calib_data.Yp_abs, calib_data.ocam_model.xc,
+                                      calib_data.ocam_model.yc, calib_data.taylor_order,
+                                      calib_data.ima_proc)
     print(ss)
     print(RRfin)
     calib_data.RRfin = RRfin

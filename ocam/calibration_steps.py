@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .calib_data import CalibData
-from .calibrate import calibrate
+from .calibrate import calibrate_linear
 from .get_checkerboard_corners import get_checkerboard_corners
 from .reprojectpoints import reprojectpoints
 
@@ -35,10 +35,10 @@ def calibration(calib_data: CalibData, visualize=True):
     calib_data.ocam_model.c = 1
     calib_data.ocam_model.d = 0
     calib_data.ocam_model.e = 0
-    calib_data.RRfin, calib_data.ocam_model.ss = calibrate(calib_data.Xt, calib_data.Yt, calib_data.Xp_abs,
-                                                           calib_data.Yp_abs, calib_data.ocam_model.xc,
-                                                           calib_data.ocam_model.yc, calib_data.taylor_order,
-                                                           calib_data.ima_proc)
+    calib_data.RRfin, calib_data.ocam_model.ss = calibrate_linear(calib_data.Xt, calib_data.Yt, calib_data.Xp_abs,
+                                                                  calib_data.Yp_abs, calib_data.ocam_model.xc,
+                                                                  calib_data.ocam_model.yc, calib_data.taylor_order,
+                                                                  calib_data.ima_proc)
     calib_data.calibrated = True
 
     print(calib_data.ocam_model.ss)
