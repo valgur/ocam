@@ -19,7 +19,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from .calib_data import CalibData
-from .world2cam import omni3d2pixel
+from .reprojectpoints import omni3d2pixel
 
 
 def bundle_adjustment(calib_data, robust, verbose=True, optim_args=None):
