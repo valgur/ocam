@@ -1,21 +1,21 @@
-# FINDINVPOLY finds the inverse polynomial specified in the argument.
-#   [POL, ERR, N] = FINDINVPOLY(SS, RADIUS, N) finds an approximation of the inverse polynomial specified in OCAM_MODEL.SS.
-#   The returned polynomial POL is used in WORLD2CAM_FAST to compute the reprojected point very efficiently.
-#   
-#   SS is the polynomial which describe the mirrror/lens model.
-#   RADIUS is the radius (pixels) of the omnidirectional picture.
-#   ERR is the error (pixel) that you commit in using the returned
-#   polynomial instead of the inverse SS. N is searched so that
-#   that ERR is < 0.01 pixels.
-#
-#   Copyright (C) 2008 DAVIDE SCARAMUZZA, ETH Zurich
-#   Author: Davide Scaramuzza - email: davide.scaramuzza@ieee.org
-
-import numpy as np
 import cv2
+import numpy as np
 
 
 def findinvpoly(ss, radius, N=None, tol=0.01):
+    """Finds the inverse polynomial specified in the argument.
+
+    Finds an approximation of the inverse polynomial specified in OCAM_MODEL.SS.
+    The returned polynomial POL is used in WORLD2CAM_FAST to compute the reprojected point very efficiently.
+
+    SS is the polynomial which describe the mirror/lens model.
+    RADIUS is the radius (pixels) of the omnidirectional picture.
+    TOL is the error (pixel) that you commit in using the returned polynomial instead of the inverse SS.
+    N is searched so that that TOL is < 0.01 pixels.
+
+    Copyright (C) 2008 DAVIDE SCARAMUZZA, ETH Zurich
+    Author: Davide Scaramuzza - email: davide.scaramuzza@ieee.org
+    """
     if N is None:
         maxerr = np.inf
         N = 1
