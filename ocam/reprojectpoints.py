@@ -19,38 +19,51 @@
 #   USA
 ############################################################################
 
+import numpy as np
+
 from .calib_data import CalibData
-from .libsmop import *
-from .omni3d2pixel import omni3d2pixel
+from .world2cam import omni3d2pixel
 
 
-@function
 def reprojectpoints(calib_data: CalibData):
-    m = copy([])
-    xx = copy([])
-    err = copy([])
-    stderr = copy([])
-    rhos = copy([])
-    num_points = size(calib_data.Xp_abs, 1)
-    MSE = 0
-    counterr = 0
-    for i in calib_data.ima_proc.flat:
-        counterr += 1
-        xx = dot(calib_data.RRfin[:, :, i],
-                 concat([[calib_data.Xt.T], [calib_data.Yt.T], [ones(size(calib_data.Xt.T))]]))
-        Xp_reprojected, Yp_reprojected = omni3d2pixel(calib_data.ocam_model.ss, xx, calib_data.width,
-                                                      calib_data.height, nargout=2)
-        stt = sqrt((calib_data.Xp_abs[:, :, i] - calib_data.ocam_model.xc - Xp_reprojected.T)**2 + (
-                calib_data.Yp_abs[:, :, i] - calib_data.ocam_model.yc - Yp_reprojected.T)**2)
-        err[counterr] = mean(stt)
-        stderr[counterr] = std(stt)
-        MSE += sum((calib_data.Xp_abs[:, :, i] - calib_data.ocam_model.xc - Xp_reprojected.T)**2 + (
-                calib_data.Yp_abs[:, :, i] - calib_data.ocam_model.yc - Yp_reprojected.T)**2)
+    M = np.c_[calib_data.Xt, calib_data.Yt, np.ones(len(calib_data.Xt))]
+    return reprojectpoints_adv(
+        calib_data.ocam_model,
+        calib_data.RRfin,
+        calib_data.ima_proc,
+        calib_data.Xp_abs,
+        calib_data.Yp_abs,
+        M
+    )
+
+
+def reprojectpoints_adv(ocam_model, RRfin, ima_proc, Xp_abs, Yp_abs, M):
+    n_img = len(ima_proc)
+    err = np.zeros(n_img)
+    stderr = np.zeros(n_img)
+    mse = 0
+    ss = ocam_model.ss
+    c = ocam_model.c
+    d = ocam_model.d
+    e = ocam_model.e
+    xc = ocam_model.xc
+    yc = ocam_model.yc
+    xx = RRfin @ M.T
+    for i, kk in enumerate(ima_proc):
+        Xp_reprojected, Yp_reprojected = omni3d2pixel(ss, xx[kk])
+        Xp_reprojected = Xp_reprojected * c + Yp_reprojected * d + xc
+        Yp_reprojected = Xp_reprojected * e + Yp_reprojected + yc
+        sqerr = (Xp_abs[kk] - Xp_reprojected)**2 + (Yp_abs[kk] - Yp_reprojected)**2
+        stt = np.sqrt(sqerr)
+        err[i] = stt.mean()
+        stderr[i] = stt.std()
+        mse += sqerr.sum()
 
     print('\n Average reprojection error computed for each chessboard [pixels]:\n')
-    for i in arange(1, length(err)).flat:
-        fprintf(' %3.2f %c %3.2f\n', err[i], 177, stderr[i])
+    for kk in range(len(err)):
+        print(f' {err[kk]:3.2f} {177:c} {stderr[kk]:3.2f}')
 
-    # err'
-    print('\n Average error [pixels]\n\n %f\n', mean(err), end='')
-    print('\n Sum of squared errors\n\n %f\n', MSE, end='')
+    print('\n Average error [pixels]\n ', err.mean())
+    print('\n Sum of squared errors\n ', mse)
+
+    return err, stderr, mse

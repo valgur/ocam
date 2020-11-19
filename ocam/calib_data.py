@@ -18,22 +18,18 @@
 # 04.03.2014 by Steffen Urban
 # this is a modified file from
 # Davide Scaramuzzas Toolbox OcamCalib
-# filename: C_self.m
-# Code was added to 
-# save statistical relevant variables
+import os
+from dataclasses import InitVar, dataclass, field
 
-from dataclasses import dataclass, InitVar
-
+import numpy as np
 from imageio import imread
-
-from .libsmop import *
 
 
 @dataclass
 class OCamModel:
     img_shape: InitVar[(int, int)] = None  # (height, width) for initialization
 
-    ss: matlabarray = None  # Coefficients of polynomial
+    ss: np.ndarray = None  # Coefficients of polynomial
     xc: float = None  # x-coordinate of image center
     yc: float = None  # y-coordinate of image center
     # Affine transformation parameters
@@ -42,6 +38,7 @@ class OCamModel:
     e: float = 0
     width: int = None  # Image width
     height: int = None  # Image height
+    pol: np.ndarray = None  # Inverse polynomial (optional)
 
     def __post_init__(self, img_shape):
         if img_shape:
@@ -49,23 +46,6 @@ class OCamModel:
             self.width = img_shape[1]
             self.xc = round(self.height / 2.)
             self.yc = round(self.width / 2.)
-            # self.ss = copy([np.sqrt(self.width * self.height)] + [0] * self.taylor_order)
-
-
-@dataclass
-class StatEO:
-    stdEO: matlabarray = None
-    varEO: matlabarray = None
-    sg0: matlabarray = None
-    Exx: matlabarray = None
-
-
-@dataclass
-class StatIO:
-    stdIO: matlabarray = None
-    varIO: matlabarray = None
-    sg0: matlabarray = None
-    Exx: matlabarray = None
 
 
 @dataclass()
@@ -80,20 +60,18 @@ class CalibData:
 
     taylor_order: int = 4  # Order of the polynomial
 
-    active_images: matlabarray = None  # Vector indicating images used
-    ima_proc: matlabarray = None  # Images being processed
+    active_images: np.ndarray = None  # Vector indicating images used
+    ima_proc: list = field(default_factory=list)  # Images being processed
 
     # Calibration model
     ocam_model: OCamModel = OCamModel()
 
-    RRfin: matlabarray = None  # Extrinsic parameters of checkerboards
+    RRfin: np.ndarray = None  # Extrinsic parameters of checkerboards
 
-    Xt: float = None  # Checkerboard corner coordinates (mm)
-    Yt: float = None
-    Xp_abs: float = None  # Checkerboard corner coordinates (px)
-    Yp_abs: float = None
-    Xp_abss: float = None  # Checkerboard sub pixel corner coordinates (px)
-    Yp_abss: float = None
+    Xt: np.ndarray = None  # Checkerboard corner coordinates (mm)
+    Yt: np.ndarray = None
+    Xp_abs: np.ndarray = None  # Checkerboard corner coordinates (px)
+    Yp_abs: np.ndarray = None
 
     wintx: int = None  # Size of corner search window for assisted
     winty: int = None  # manual corner selection
@@ -101,30 +79,14 @@ class CalibData:
     # Flags
     no_image_file: bool = None  # Indicates missing image files
     calibrated: bool = False  # Indicates calibrated ocam_model
+    optimized: bool = False  # Non-linear optimization has been applied
 
     map: str = 'gray'  # Colormap for displaying images
 
-    ## ================
-    #  added code
-    #
-    # errors
-    # overall errors
-    errMean: float = None
-    errStd: float = None
-    mse: float = None
-    rms: float = None
-    runtime: float = None
-    rmsAfterCenter: float = None
-
-    statEO: StatEO = StatEO()
-    statIO: StatIO = StatIO()
-
+    # Non-linear optimization result from scipy.optimize.least_squares
+    ba_result: dict = None
     # weights from robust optimization
-    weights: matlabarray = None
-
-    optimized: bool = False
-
-    ## ================
+    weights: np.ndarray = None
 
     @property
     def n_imgs(self):
@@ -134,7 +96,7 @@ class CalibData:
     @property
     def ind_active(self):
         """Indices of images used"""
-        return find(self.active_images)
+        return np.argwhere(self.active_images).flatten()
 
     @property
     def width(self):
@@ -143,6 +105,18 @@ class CalibData:
     @property
     def height(self):
         return self.ocam_model.height
+
+    @property
+    def n_cor_x(self):
+        return self.n_sq_x + 1
+
+    @property
+    def n_cor_y(self):
+        return self.n_sq_y + 1
+
+    @property
+    def n_corners(self):
+        return self.n_cor_x * self.n_cor_y
 
     def __post_init__(self):
         if self.n_imgs == 0:
@@ -153,31 +127,25 @@ class CalibData:
                 raise ValueError(f"Image '{f}' does not exist")
 
         if self.active_images is None or len(self.active_images) == 0:
-            self.active_images = ones(1, self.n_imgs)
+            self.active_images = np.ones(self.n_imgs, dtype=bool)
         else:
             assert len(self.active_images) == self.n_imgs
 
-        img = self.read_image(1)
+        img = self.read_image(0)
         self.ocam_model = OCamModel(img.shape[:2])
 
         # Arranging the pixel of the world
         Xt = []
         Yt = []
-        for i in range(0, self.n_sq_x + 1):
-            for j in range(0, self.n_sq_y + 1):
+        for i in range(self.n_sq_x + 1):
+            for j in range(self.n_sq_y + 1):
                 Yt.append(j * self.dY)
                 Xt.append(i * self.dX)
-        self.Xt = copy(Xt).T
-        self.Yt = copy(Yt).T
+        self.Xt = np.array(Xt)
+        self.Yt = np.array(Yt)
 
     def read_image(self, idx):
-        """
-        Parameters
-        ----------
-        idx : 1-based index
-        """
-        img = imread(self.imgs[idx - 1])
-        if img.shape[2] > 1:
-            img = 0.299 * img[:, :, 0] + 0.587 * img[:, :, 1] + 0.114 * img[:, :, 2]
-        img = matlabarray(np.squeeze(img))
+        img = imread(self.imgs[idx])
+        if len(img.shape) > 2:
+            img = img @ np.array([0.299, 0.587, 0.114])
         return img

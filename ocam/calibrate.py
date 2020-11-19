@@ -19,257 +19,149 @@
 #   USA
 ############################################################################
 
-from numpy import sign
-from numpy.linalg import svd, norm, pinv
+import numpy as np
+import numpy.linalg as la
+from scipy.special import factorial
 
-from .libsmop import *
+from ocam.lsqlin import lsqlin
 
 
-@function
-def calibrate(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None, yc=None, taylor_order_default=None, ima_proc=None,
-              *args, **kwargs):
+def calibrate(Xt, Yt, Xp_abs, Yp_abs, xc, yc, taylor_order, ima_proc):
     Yp = Yp_abs - yc
     Xp = Xp_abs - xc
-    for kk in ima_proc.flat:
-        Ypt = Yp[:, :, kk]
-        Xpt = Xp[:, :, kk]
-        A = concat([multiply(Xt, Ypt), multiply(Yt, Ypt), multiply(- Xt, Xpt), multiply(- Yt, Xpt), Ypt, - Xpt])
-        U, S, V = svd(A)
-        R11 = V(1, end())
-        R12 = V(2, end())
-        R21 = V(3, end())
-        R22 = V(4, end())
-        T1 = V(5, end())
-        T2 = V(6, end())
-        AA = ((dot(R11, R12)) + (dot(R21, R22)))**2
+    n_img, n_corners = Xp_abs.shape
+    RRfin = np.zeros((n_img, 3, 3))
+    for kk in ima_proc:
+        Ypt = Yp[kk, :]
+        Xpt = Xp[kk, :]
+        # Building the matrix
+        A = np.c_[Xt * Ypt, Yt * Ypt, -Xt * Xpt, -Yt * Xpt, Ypt, -Xpt]
+        U, S, Vt = la.svd(A, full_matrices=False)
+        # Solving for computing the scale factor Lambda
+        R11, R12, R21, R22, T1, T2 = Vt[-1, :]
+
+        AA = (R11 * R12 + R21 * R22)**2
         BB = R11**2 + R21**2
         CC = R12**2 + R22**2
-        R32_2 = roots(concat([1, CC - BB, - AA]))
-        R32_2 = R32_2(find(R32_2 >= 0))
-        R31 = copy([])
-        R32 = copy([])
-        sg = concat([1, - 1])
-        for i in arange(1, length(R32_2)).flat:
-            for j in range(1, 2 + 1):
-                sqrtR32_2 = dot(sg[j], sqrt(R32_2[i]))
-                R32 = concat([[R32], [sqrtR32_2]])
-                if R32_2 == 0:
-                    R31 = concat([[R31], [sqrt(CC - BB)]])
-                    R31 = concat([[R31], [-sqrt(CC - BB)]])
-                    R32 = concat([[R32], [sqrtR32_2]])
-                else:
-                    R31 = concat([[R31], [numpy.linalg.solve(- sqrtR32_2, (dot(R11, R12) + dot(R21, R22)))]])
-        RR = zeros(3, 3, dot(length(R32), 2))
-        count = 0
-        for i1 in arange(1, length(R32)).flat:
-            for i2 in range(1, 2 + 1):
-                count += 1
-                Lb = numpy.linalg.solve(sqrt(R11**2 + R21**2 + R31(i1)**2), 1)
-                RR[:, :, count] = dot(dot(sg[i2], Lb),
-                                      concat([[R11, R12, T1], [R21, R22, T2], [R31(i1), R32(i1), 0]]))
-        RR1 = copy([])
-        minRR = np.inf
-        minRR_ind = - 1
-        for min_count in arange(1, size(RR, 3)).flat:
-            if (norm(concat([[RR[1, 3, min_count]], [RR[2, 3, min_count]]]) - concat([[Xpt[1]], [Ypt[1]]])) < minRR):
-                minRR = norm(concat([[RR[1, 3, min_count]], [RR[2, 3, min_count]]]) - concat([[Xpt[1]], [Ypt[1]]]))
-                minRR_ind = min_count
-        if minRR_ind != - 1:
-            count2 = 0
-            for count in arange(1, size(RR, 3)).flat:
-                if (sign(RR[1, 3, count]) == logical_and(sign(RR[1, 3, minRR_ind]), sign(RR[2, 3, count])) == sign(
-                        RR[2, 3, minRR_ind])):
-                    count2 += 1
-                    RR1[:, :, count2] = RR[:, :, count]
-        if isempty(RR1):
-            RRfin = 0
-            ss = 0
-            return RRfin, ss
-        #    figure[1]; imagesc(aa[:,:,:,counter]); set(h,'name',filename);
-        nm = plot_RR(RR1, Xt, Yt, Xpt, Ypt, 0)
-        RRdef = RR1[:, :, nm]
-        RRfin[:, :, kk] = RRdef
+        R32_2 = np.roots([1, CC - BB, -AA])
+        R32_2 = R32_2[R32_2 >= 0]
 
-    # Run program finding mirror and translation parameters
-    RRfin, ss = omni_find_parameters_fun(Xt, Yt, Xp_abs, Yp_abs, xc, yc, RRfin, taylor_order_default, ima_proc,
-                                         nargout=2)
+        if R32_2 != 0:  # <= 0.00000001 * (R12^2+R22^2) %that is like R32==0
+            R32 = np.sqrt(R32_2)
+            R32 = np.c_[R32, -R32].flatten()
+            R31 = -(R11 * R12 + R21 * R22) / R32
+        else:
+            R32 = np.sqrt(R32_2)
+            R32 = np.c_[R32, R32, -R32, -R32].flatten()
+            R31 = np.repeat(np.sqrt(CC - BB), len(R32_2))
+            R31 = np.c_[R31, -R31, R31, -R31].flatten()
+
+        RR = np.zeros((len(R32), 3, 3))
+        for i in range(len(R32)):
+            Lb = 1. / np.sqrt(R11**2 + R21**2 + R31[i]**2)
+            RR[i] = Lb * np.array([
+                [R11, R12, T1],
+                [R21, R22, T2],
+                [R31[i], R32[i], 0]
+            ])
+        RR = np.r_[RR, -RR]
+
+        T = RR[:, :2, 2]
+        minRR_ind = np.argmin(la.norm(T - np.array([Xpt[0], Ypt[0]]), axis=1))
+        RR1 = RR[np.all(np.sign(T) == np.sign(T[minRR_ind]), axis=1)]
+        if len(RR1) == 0:
+            return None, None
+        nm = find_valid_RR(RR1, Xt, Yt, Xpt, Ypt)
+        RRfin[kk] = RR1[nm]
+
+    # find mirror and translation parameters
+    RRfin, ss = omni_find_parameters_fun(Xt, Yt, Xp_abs, Yp_abs, xc, yc, RRfin, taylor_order, ima_proc)
     return RRfin, ss
 
 
-@function
-def omni_find_parameters_fun(Xt=None, Yt=None, Xp_abs=None, Yp_abs=None, xc=None, yc=None, RRfin=None,
-                             taylor_order=None, ima_proc=None):
+def find_valid_RR(RR, Xt, Yt, Xpt, Ypt):
+    rho2 = Xpt**2 + Ypt**2
+    rho = np.sqrt(rho2)
+    for i in range(len(RR)):
+        (R11, R12, T1,
+         R21, R22, T2,
+         R31, R32, _) = RR[i].flat
+        MA = R21 * Xt + R22 * Yt + T2
+        MB = Ypt * (R31 * Xt + R32 * Yt)
+        MC = R11 * Xt + R12 * Yt + T1
+        MD = Xpt * (R31 * Xt + R32 * Yt)
+        PP1 = np.r_[
+            np.c_[MA, MA * rho, MA * rho2],
+            np.c_[MC, MC * rho, MC * rho2]
+        ]
+        PP = np.c_[PP1, np.r_[-Ypt, -Xpt]]
+        QQ = np.r_[MB, MD]
+        s = np.squeeze(la.pinv(PP) @ QQ)
+        ss = s[:3]
+        if ss[2] >= 0:
+            return i
+    return None
+
+
+def omni_find_parameters_fun(Xt, Yt, Xp_abs, Yp_abs, xc, yc, RRfin, taylor_order, ima_proc,
+                             ensure_convexity=True):
     Yp = Yp_abs - yc
     Xp = Xp_abs - xc
-    # obrand_start
-    min_order = 4
-    range_ = 1000
-    if taylor_order <= min_order:
-        PP = copy([])
-        QQ = copy([])
-        mono = copy([])
-        count = 0
-        for i in ima_proc.flat:
-            count += 1
-            RRdef = RRfin[:, :, i]
-            R11 = RRdef[1, 1]
-            R21 = RRdef[2, 1]
-            R31 = RRdef[3, 1]
-            R12 = RRdef[1, 2]
-            R22 = RRdef[2, 2]
-            R32 = RRdef[3, 2]
-            T1 = RRdef[1, 3]
-            T2 = RRdef[2, 3]
-            Xpt = Xp[:, :, i]
-            Ypt = Yp[:, :, i]
-            MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
-            MB = multiply(Ypt, (multiply(R31, Xt) + multiply(R32, Yt)))
-            MC = multiply(R11, Xt) + multiply(R12, Yt) + T1
-            MD = multiply(Xpt, (multiply(R31, Xt) + multiply(R32, Yt)))
-            rho = copy([])
-            for j in arange(2, taylor_order).flat:
-                rho[:, :, j] = (sqrt(Xpt**2 + Ypt**2))**j
-            PP1 = concat([[MA], [MC]])
-            for j in arange(2, taylor_order).flat:
-                PP1 = concat([PP1, concat(
-                    [[multiply(MA, rho[:, :, j])], [multiply(MC, rho[:, :, j])]])])
-            PP = concat(
-                [[PP, zeros(size(PP, 1), 1)], [PP1, zeros(size(PP1, 1), count - 1), concat([[- Ypt], [- Xpt]])]])
-            QQ = concat([[QQ], [MB], [MD]])
-        if (license('checkout', 'Optimization_Toolbox') != 1):
-            s = dot(pinv(PP), QQ)
-            ss = s(arange(1, taylor_order))
-            count = 0
-            for j in ima_proc.flat:
-                count += 1
-                RRfin[3, 3, j] = s(length(ss) + count)
-            ss = concat([[ss[1]], [0], [ss(arange(2, end()))]])
-        else:
-            diff_order = 2
-            mono_rho = copy([])
-            for j in range(1, taylor_order + 1):
-                mono_rho[:, j] = concat([arange(1, max(squeeze(max(Xp_abs))))])**j
-            for diff_k in arange(1, min(diff_order, taylor_order)).flat:
-                mono1 = copy([])
-                for j in range(1, diff_k + 1):
-                    mono1 = concat([mono1, zeros(size(mono_rho, 1), 1)])
-                mono1 = concat([mono1, dot(factorial(diff_k), ones(size(mono_rho, 1), 1))])
-                for j in arange(diff_k + 1, taylor_order).flat:
-                    mono1 = concat([mono1, dot(factorial[j] / factorial(j - diff_k), mono_rho[:, j - diff_k])])
-                mono = concat([[mono], [mono1[:, 1], mono1[:, arange(3, end())]]])
-            if isempty(mono):
-                mono = copy([])
-                mono_const = copy([])
-            else:
-                mono = - concat([mono, zeros(size(mono, 1), size(PP, 2) - size(mono, 2))])
-                mono_const = zeros(size(mono, 1), 1)
-            options = optimset('Display', 'off')
-            warning('off', 'all')
-            s_o, ob_resnorm, ob_residual, ob_exitflag, ob_output, ob_lambda = lsqlin(PP, QQ, mono, mono_const, [], [],
-                                                                                     [], [], [], options, nargout=6)
-            warning('on', 'all')
-            ss_o = s_o(arange(1, taylor_order))
-            count = 0
-            for j in ima_proc.flat:
-                count += 1
-                RRfin[3, 3, j] = s_o(length(ss_o) + count)
-            ss = concat([[ss_o[1]], [0], [ss_o(arange(2, end()))]])
-    else:
-        # obrand calculate higher order polynomials iteratively
-        x0 = zeros(1, length(ima_proc) + 2)
-        lb = dot(- np.inf, ones(size(x0)))
-        ub = dot(np.inf, ones(size(x0)))
-        max_order = taylor_order
-        for taylor_order in arange(min_order, max_order).flat:
-            PP = copy([])
-            QQ = copy([])
-            count = 0
-            for i in ima_proc.flat:
-                count += 1
-                RRdef = RRfin[:, :, i]
-                R11 = RRdef[1, 1]
-                R21 = RRdef[2, 1]
-                R31 = RRdef[3, 1]
-                R12 = RRdef[1, 2]
-                R22 = RRdef[2, 2]
-                R32 = RRdef[3, 2]
-                T1 = RRdef[1, 3]
-                T2 = RRdef[2, 3]
-                Xpt = Xp[:, :, i]
-                Ypt = Yp[:, :, i]
-                MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
-                MB = multiply(Ypt, (multiply(R31, Xt) + multiply(R32, Yt)))
-                MC = multiply(R11, Xt) + multiply(R12, Yt) + T1
-                MD = multiply(Xpt, (multiply(R31, Xt) + multiply(R32, Yt)))
-                rho = copy([])
-                for j in arange(2, taylor_order).flat:
-                    rho[:, :, j] = (sqrt(Xpt**2 + Ypt**2))**j
-                PP1 = concat([[MA], [MC]])
-                for j in arange(2, taylor_order).flat:
-                    PP1 = concat([PP1, concat(
-                        [[multiply(MA, rho[:, :, j])], [multiply(MC, rho[:, :, j])]])])
-                PP = concat(
-                    [[PP, zeros(size(PP, 1), 1)], [PP1, zeros(size(PP1, 1), count - 1), concat([[- Ypt], [- Xpt]])]])
-                QQ = concat([[QQ], [MB], [MD]])
-            if (license('checkout', 'Optimization_Toolbox') != 1):
-                s = dot(pinv(PP), QQ)
-                ss = s(arange(1, taylor_order))
-            else:
-                options = optimset('Display', 'off')
-                warning('off', 'all')
-                s, ob_resnorm, ob_residual, ob_exitflag, ob_output, ob_lambda = lsqlin(PP, QQ, [], [], [], [], lb, ub,
-                                                                                       x0, options, nargout=6)
-                warning('on', 'all')
-                ss = s(arange(1, taylor_order))
-            x0 = concat([[s(arange(1, taylor_order))], [0], [s(arange(taylor_order + 1, end()))]])
-            lb = concat([[s(arange(1, taylor_order)) - abs(dot(range_, s(arange(1, taylor_order))))], [- np.inf],
-                         [dot(- np.inf, ones(size(s(arange(taylor_order + 1, end())))))]])
-            ub = concat([[s(arange(1, taylor_order)) + abs(dot(range_, s(arange(1, taylor_order))))], [np.inf],
-                         [dot(np.inf, ones(size(s(arange(taylor_order + 1, end())))))]])
-            eq_bounds = find(lb == ub)
-            lb[eq_bounds] = lb[eq_bounds] - eps(lb[eq_bounds])
-            ub[eq_bounds] = ub[eq_bounds] + eps(ub[eq_bounds])
-        count = 0
-        for j in ima_proc.flat:
-            count += 1
-            RRfin[3, 3, j] = s(length(ss) + count)
-        ss = concat([[ss[1]], [0], [ss(arange(2, end()))]])
+    n_img, n_corners = Xp_abs.shape
+    PP = np.zeros((n_img, 2 * n_corners, taylor_order + n_img))
+    QQ = np.zeros((n_img, 2, n_corners))
+    for i, kk in enumerate(ima_proc):
+        (R11, R12, T1,
+         R21, R22, T2,
+         R31, R32, _) = RRfin[kk].flat
+        Xpt = Xp[kk]
+        Ypt = Yp[kk]
+        MA = R21 * Xt + R22 * Yt + T2
+        MB = Ypt * (R31 * Xt + R32 * Yt)
+        MC = R11 * Xt + R12 * Yt + T1
+        MD = Xpt * (R31 * Xt + R32 * Yt)
+        rho = np.zeros((n_corners, taylor_order))
+        rho[:, 1:] = np.sqrt(Xpt**2 + Ypt**2)[None].T**np.arange(2, taylor_order + 1)
+        PP[i, :, :taylor_order] = np.r_[MA[None].T * rho, MC[None].T * rho]
+        PP[i, :, 0] = np.r_[MA, MC]
+        PP[i, :, taylor_order + i] = np.r_[-Ypt, -Xpt]
+        QQ[i, 0] = MB
+        QQ[i, 1] = MD
+    PP = PP.reshape(-1, PP.shape[-1])
+    QQ = QQ.reshape(-1, 1)
 
-    # obrand_end
+    if ensure_convexity:
+        # Ensure that the resulting polynomial is convex by adding a non-negative constraint on its second derivative.
+        # This guarantees that the inverse of the polynomial can be mapped nicely one-to-one to another polynomial.
+        rho = np.arange(int(np.ceil(Xp_abs.max())))
+        mono, mono_const = construct_convexity_constraint(n_img, rho, taylor_order)
+        solution = lsqlin(PP, QQ, A=mono, b=mono_const)
+        assert solution['status'] == 'optimal'
+        s = np.squeeze(solution['x'])
+    else:
+        s = np.squeeze(la.pinv(PP) @ QQ)
+
+    ss = s[:taylor_order]
+    for i, kk in enumerate(ima_proc):
+        RRfin[kk, 2, 2] = s[taylor_order + i]
+    ss = np.r_[ss[0], 0, ss[1:]]
     return RRfin, ss
 
 
-@function
-def plot_RR(RR=None, Xt=None, Yt=None, Xpt=None, Ypt=None, figure_number=None):
-    if figure_number > 0:
-        figure(figure_number)
-
-    for i in arange(1, size(RR, 3)).flat:
-        RRdef = RR[:, :, i]
-        R11 = RRdef[1, 1]
-        R21 = RRdef[2, 1]
-        R31 = RRdef[3, 1]
-        R12 = RRdef[1, 2]
-        R22 = RRdef[2, 2]
-        R32 = RRdef[3, 2]
-        T1 = RRdef[1, 3]
-        T2 = RRdef[2, 3]
-        MA = multiply(R21, Xt) + multiply(R22, Yt) + T2
-        MB = multiply(Ypt, (multiply(R31, Xt) + multiply(R32, Yt)))
-        MC = multiply(R11, Xt) + multiply(R12, Yt) + T1
-        MD = multiply(Xpt, (multiply(R31, Xt) + multiply(R32, Yt)))
-        rho = sqrt(Xpt**2 + Ypt**2)
-        rho2 = (Xpt**2 + Ypt**2)
-        PP1 = concat([[MA, multiply(MA, rho), multiply(MA, rho2)], [MC, multiply(MC, rho), multiply(MC, rho2)]])
-        PP = concat([PP1, concat([[- Ypt], [- Xpt]])])
-        QQ = concat([[MB], [MD]])
-        s = dot(pinv(PP), QQ)
-        ss = s(arange(1, 3))
-        if figure_number > 0:
-            subplot(1, size(RR, 3), i)
-            plot(arange(0, 620), polyval(concat([ss[3], ss[2], ss[1]]), concat([arange(0, 620)])))
-            grid
-            axis('equal')
-        if ss(end()) >= 0:
-            index = i
-    return index
+def construct_convexity_constraint(n_img, rho, taylor_order):
+    mono = np.empty((0, taylor_order))
+    diff_order = 2
+    for diff_k in range(1, min(diff_order, taylor_order) + 1):
+        mono1 = []
+        for i in range(diff_k):
+            mono1.append(np.zeros_like(rho))
+        mono1.append(np.full_like(rho, factorial(diff_k)))
+        for i in range(diff_k + 1, taylor_order + 1):
+            mono1.append((factorial(i) / factorial(i - diff_k)) * rho**(i - diff_k))
+        del mono1[1]
+        mono = np.r_[mono, np.array(mono1).T]
+    if len(mono) == 0:
+        return None, None
+    mono = np.c_[-mono, np.zeros((len(mono), n_img))]
+    mono_const = np.zeros((len(mono), 1))
+    return mono, mono_const

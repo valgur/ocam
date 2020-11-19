@@ -20,34 +20,33 @@
 # Davide Scaramuzzas Toolbox OcamCalib
 # filename: get_checkerboard_corners.m
 # Code was changed to force subpixel corners
-
 import os
 import shutil
 import subprocess
 import tempfile
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from . import libsmop
 from .calib_data import CalibData
 from .cornerfinder import cornerfinder
 from .draw_axes import draw_axes
 
 
-def get_checkerboard_corners(calib_data: CalibData, kk: int, refine_corners: bool = True, visualize: bool = False):
+def get_checkerboard_corners(calib_data: CalibData, kk: int, visualize: bool = False):
     n_sq_x, n_sq_y = calib_data.n_sq_x, calib_data.n_sq_y
-    img = calib_data.read_image(kk) if refine_corners or visualize else None
+    img = calib_data.read_image(kk)
 
-    print(f'Processing image {calib_data.imgs[kk - 1]}...')
+    print(f'Processing image {calib_data.imgs[kk]}...')
 
-    corner_info, cornersX, cornersY = call_find_corners(calib_data.imgs[kk - 1], n_sq_x, n_sq_y)
+    # corner_info, cornersX, cornersY = detect_corners_old(calib_data.imgs[kk], n_sq_x, n_sq_y)
+    corner_info, cornersX, cornersY = detect_corners(img, n_sq_x, n_sq_y)
     if corner_info is None:
         return None, None
 
     # cornersX, cornersY = _fix_ambiguous_corners(corner_info, cornersX, cornersY)
-    if refine_corners:
-        cornersX, cornersY = _refine_corners(cornersX, cornersY, img)
+    cornersX, cornersY = _refine_corners(cornersX, cornersY, img)
     # _fix_orientation_ambiguity()
     # _fix_orientation_ambiguity2()
     x, y = _flatten_corner_matrices(cornersX, cornersY)
@@ -57,21 +56,33 @@ def get_checkerboard_corners(calib_data: CalibData, kk: int, refine_corners: boo
         x, y = _fix_nonsquare_board_ambiguity(x, y, n_sq_x, n_sq_y)
 
     if visualize:
-        visualize_corners(x, y, img, f'Image {kk}', n_sq_y)
+        visualize_corners(x, y, img, f'Image {kk + 1}', n_sq_y)
 
     print('Done')
 
     # convert to Matlab format for compatibility
     x[x >= 0] += 1
     y[x >= 0] += 1
-    x = libsmop.copy(x)
-    y = libsmop.copy(y)
 
     # return swapped x and y
-    return y.T, x.T
+    return y, x
 
 
-def call_find_corners(img_file: str, n_sq_x: int, n_sq_y: int) -> (np.ndarray, np.ndarray, np.ndarray):
+def detect_corners(img: np.ndarray, n_sq_x: int, n_sq_y: int) -> (np.ndarray, np.ndarray, np.ndarray):
+    img = np.squeeze(np.array(img)).astype(np.uint8)
+    board_shape = (n_sq_y + 1, n_sq_x + 1)
+    ret, corners = cv2.findChessboardCorners(img, board_shape, None)
+    if ret == 0:
+        return None, None, None
+    # criteria = (cv2.TERM_CRITERIA_MAX_ITER | cv2.TERM_CRITERIA_EPS, 30, 0.001)
+    # corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+    corners = np.squeeze(corners)
+    corners_x = corners[:, 0].reshape(board_shape[::-1])
+    corners_y = corners[:, 1].reshape(board_shape[::-1])
+    return board_shape, corners_x, corners_y
+
+
+def detect_corners_old(img_file: str, n_sq_x: int, n_sq_y: int) -> (np.ndarray, np.ndarray, np.ndarray):
     img_file = os.path.abspath(img_file)
     script_dir = os.path.dirname(os.path.realpath(__file__))
     executable = os.path.join(script_dir, 'autoCornerFinder/FindCorners')
@@ -120,27 +131,6 @@ def call_find_corners(img_file: str, n_sq_x: int, n_sq_y: int) -> (np.ndarray, n
         os.chdir(cur_dir)
         shutil.rmtree(work_dir)
     return cornerInfo, cornersX, cornersY
-
-
-def _fix_ambiguous_corners(cornerInfo, cornersX, cornersY):
-    # If there are entire rows of zeros at the end of the file, this means that
-    # the cornerfinder is not entirely sure about the location of the board.
-    # Then eventually additional corners are needed in the front.
-    if np.any(~np.any(cornersX >= 0, axis=1)):
-        raise NotImplementedError
-        # Add at least one row! This is because the columns are maybe ambiguous, 
-        # and then we don't know whether they belong to the current row or to the
-        # next one...
-        # if cornerInfo[0] - iSave >= 0:
-        #     cornersX = concat([
-        #         -1 * ones(cornerInfo[0] - iSave + 1, cornerInfo[1]),
-        #         cornersX
-        #     ])
-        #     cornersY = concat([
-        #         -1 * ones(cornerInfo[0] - iSave + 1, cornerInfo[1]),
-        #         cornersY
-        #     ])
-    return cornersX, cornersY
 
 
 def _fix_orientation_ambiguity():
@@ -348,8 +338,7 @@ def _calculate_bounds(x: np.ndarray, y: np.ndarray, img_shape):
 
 
 def visualize_corners(x, y, img, title, n_sq_y, corner_color='red', axis_color='lime', cmap='gray'):
-    img = np.array(img)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_title(title, dict(fontweight='bold'))
     ax.imshow(img, cmap=cmap, interpolation='bilinear')
     draw_axes(ax, y, x, n_sq_y, axis_color)

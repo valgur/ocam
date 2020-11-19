@@ -11,51 +11,43 @@
 #   Copyright (C) 2008 DAVIDE SCARAMUZZA, ETH Zurich
 #   Author: Davide Scaramuzza - email: davide.scaramuzza@ieee.org
 
-from .libsmop import *
+import numpy as np
+import cv2
 
 
-@function
-def findinvpoly(ss=None, radius=None):
-    nargin = findinvpoly.nargin
-
-    if nargin < 3:
+def findinvpoly(ss, radius, N=None, tol=0.01):
+    if N is None:
         maxerr = np.inf
         N = 1
-        while maxerr > 0.01:
+        while maxerr > tol:
             N += 1
-            pol, err = findinvpoly2(ss, radius, N, nargout=2)
-            maxerr = max(err)
-
+            pol, err, _ = findinvpoly2(ss, radius, N)
+            maxerr = np.max(err)
     else:
-        pol, err, N = findinvpoly2(ss, radius, N, nargout=3)
+        pol, err, N = findinvpoly2(ss, radius, N)
 
     return pol, err, N
 
 
-@function
-def findinvpoly2(ss=None, radius=None, N=None):
-    theta = concat([arange(- np.pi / 2, 1.2, 0.01)])
-    r = invFUN(ss, theta, radius)
-    ind = find(r != inf)
-    theta = theta(ind)
-    r = r(ind)
-    pol = polyfit(theta, r, N)
-    err = abs(r - polyval(pol, theta))
+def findinvpoly2(ss, radius, N):
+    theta = np.arange(-np.pi / 2, 1.2, 0.01)
+    r = invFUN(ss, theta)
+    valid = r < radius
+    theta = theta[valid]
+    r = r[valid]
+    pol = np.polyfit(theta, r, N)
+    err = np.abs(r - np.polyval(pol, theta))
     return pol, err, N
 
 
-@function
-def invFUN(ss=None, theta=None, radius=None):
+def invFUN(ss, theta):
     m = np.tan(theta)
-    r = copy([])
-    poly_coef = ss(arange(end(), 1, - 1))
-    poly_coef_tmp = copy(poly_coef)
-    for j in arange(1, length(m)).flat:
-        poly_coef_tmp[end() - 1] = poly_coef(end() - 1) - m[j]
-        rhoTmp = roots(poly_coef_tmp)
-        res = rhoTmp(find(imag(rhoTmp) == logical_and(0, rhoTmp) > logical_and(0, rhoTmp) < radius))
-        if logical_or(isempty(res), length(res)) > 1:
-            r[j] = inf
-        else:
-            r[j] = res
+    r = np.zeros(len(m))
+    poly_coef = ss[::-1]
+    poly_coef_tmp = poly_coef.copy()
+    for i in range(len(m)):
+        poly_coef_tmp[-2] = poly_coef[-2] - m[i]
+        rho_tmp = cv2.solvePoly(poly_coef_tmp[::-1], maxIters=50)[1][:, 0]
+        res = rho_tmp[(rho_tmp[:, 0] > 0) & (np.abs(rho_tmp[:, 1]) < 1e-10), 0]
+        r[i] = np.min(res) if len(res) > 0 else np.inf
     return r
