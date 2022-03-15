@@ -28,6 +28,7 @@ def reference(title, idx):
         return np.loadtxt(f, delimiter=',')
 
 
+@pytest.skip
 @pytest.mark.parametrize("kk", np.arange(10))
 def test_get_checkerboard_corners(kk, calib_data):
     img_shape = calib_data.height, calib_data.height
